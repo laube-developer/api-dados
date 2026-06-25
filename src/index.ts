@@ -9,6 +9,14 @@ import {
 } from '../database/pacientes/atualizarPacientes.js';
 import { buscarAgendamento, ErroValidacao as ErroValidacaoBusca } from '../database/agendamentos/buscarAgendamento.js';
 import { buscarAgendamentos, ErroValidacao as ErroValidacaoBuscaAgendamentos } from '../database/agendamentos/buscarAgendamentos.js';
+import {
+    buscarAgendamentoPorId,
+    ErroValidacao as ErroValidacaoBuscaAgendamentoPorId
+} from '../database/agendamentos/buscarAgendamentoPorId.js';
+import {
+    reverterSincronizacao,
+    ErroValidacao as ErroValidacaoReversao
+} from '../database/sincronizacao/reverterSincronizacao.js';
 import { adicionarAgendamento, ErroValidacao } from '../database/agendamentos/adicionarAgendamento.js';
 import {
     atualizarStatusAgendamento,
@@ -95,6 +103,26 @@ app.patch('/atualizarPacientes', async (req: express.Request, res: express.Respo
         }
 
         const mensagem = error instanceof Error ? error.message : "Erro ao atualizar pacientes";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.get('/agendamentoPorId', async (req: express.Request, res: express.Response) => {
+    try {
+        const id_unico = req.query.id_unico as string;
+        const agendamento = await buscarAgendamentoPorId(id_unico);
+
+        if (!agendamento) {
+            return responderErro(res, "Agendamento não encontrado", 404);
+        }
+
+        return responderSucesso(res, agendamento);
+    } catch (error) {
+        if (error instanceof ErroValidacaoBuscaAgendamentoPorId) {
+            return responderErro(res, error.message, 400);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao buscar agendamento";
         return responderErro(res, mensagem);
     }
 });
@@ -284,6 +312,30 @@ app.patch('/atualizarAgendas', async (req: express.Request, res: express.Respons
         const mensagem = error instanceof Error ? error.message : "Erro ao atualizar agendas";
         return responderErro(res, mensagem);
     }
+});
+
+app.post('/reverterSincronizacao', async (req: express.Request, res: express.Response) => {
+    try {
+        await reverterSincronizacao(req.body);
+        return responderSucesso(res, { revertido: true });
+    } catch (error) {
+        if (error instanceof ErroValidacaoReversao) {
+            return responderErro(res, error.message, 400);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao reverter sincronização";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.use((error: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (res.headersSent) {
+        return next(error);
+    }
+
+    console.error(`[${new Date().toISOString()}] Erro não tratado em ${req.method} ${req.path}:`, error);
+    const mensagem = error instanceof Error ? error.message : "Erro interno do servidor";
+    return responderErro(res, mensagem);
 });
 
 app.listen(process.env.PORT, () => {

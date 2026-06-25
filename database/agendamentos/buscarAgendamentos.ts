@@ -1,4 +1,5 @@
 import type * as interfaces from "../../utils/interfaces.js";
+import { diaSeguinte, normalizarDataHoraIso } from "../../utils/datas.js";
 import { buscarTabelasBanco, chamarNotionAPI } from "../notion.js";
 
 export class ErroValidacao extends Error {
@@ -9,13 +10,7 @@ export class ErroValidacao extends Error {
 }
 
 function validarDataIso(data: string): boolean {
-    return /^\d{4}-\d{2}-\d{2}$/.test(data) && !Number.isNaN(Date.parse(`${data}T00:00:00`));
-}
-
-function diaSeguinte(data: string): string {
-    const proximoDia = new Date(`${data}T00:00:00`);
-    proximoDia.setDate(proximoDia.getDate() + 1);
-    return proximoDia.toISOString().split("T")[0];
+    return /^\d{4}-\d{2}-\d{2}$/.test(data) && !Number.isNaN(Date.parse(`${data}T12:00:00`));
 }
 
 function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
@@ -23,8 +18,8 @@ function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
     return {
         id_agenda: props.id_agenda?.rich_text?.[0]?.text?.content || "",
         id_unico: props.id_unico?.rich_text?.[0]?.text?.content || "",
-        data_hora_inicio: props.data_hora_inicio?.date?.start || "",
-        data_hora_fim: props.data_hora_fim?.date?.start || "",
+        data_hora_inicio: normalizarDataHoraIso(props.data_hora_inicio?.date?.start || ""),
+        data_hora_fim: normalizarDataHoraIso(props.data_hora_fim?.date?.start || ""),
         id_medico: props.id_medico?.rich_text?.[0]?.text?.content || "",
         cpf_paciente: props.cpf_paciente?.rich_text?.[0]?.text?.content || "",
         id_tipo_procedimento: props.id_tipo_procedimento?.rich_text?.[0]?.text?.content || "",

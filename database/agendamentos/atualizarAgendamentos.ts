@@ -1,5 +1,6 @@
 import type * as interfaces from "../../utils/interfaces.js";
 import { STATUS_AGENDAMENTO_VALIDOS } from "../../utils/interfaces.js";
+import { normalizarDataHoraIso } from "../../utils/datas.js";
 import { buscarTabelasBanco, chamarNotionAPI } from "../notion.js";
 
 export class ErroValidacao extends Error {
@@ -29,8 +30,8 @@ function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
     return {
         id_agenda: props.id_agenda?.rich_text?.[0]?.text?.content || "",
         id_unico: props.id_unico?.rich_text?.[0]?.text?.content || "",
-        data_hora_inicio: props.data_hora_inicio?.date?.start || "",
-        data_hora_fim: props.data_hora_fim?.date?.start || "",
+        data_hora_inicio: normalizarDataHoraIso(props.data_hora_inicio?.date?.start || ""),
+        data_hora_fim: normalizarDataHoraIso(props.data_hora_fim?.date?.start || ""),
         id_medico: props.id_medico?.rich_text?.[0]?.text?.content || "",
         cpf_paciente: props.cpf_paciente?.rich_text?.[0]?.text?.content || "",
         id_tipo_procedimento: props.id_tipo_procedimento?.rich_text?.[0]?.text?.content || "",
