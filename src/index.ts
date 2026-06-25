@@ -2,6 +2,7 @@ import express from 'express';
 import { buscarTabelasBanco } from '../database/notion.js';
 import { buscarPaciente } from '../database/pacientes/buscarPaciente.js';
 import { buscarAgendamento, ErroValidacao as ErroValidacaoBusca } from '../database/agendamentos/buscarAgendamento.js';
+import { buscarAgendamentos, ErroValidacao as ErroValidacaoBuscaAgendamentos } from '../database/agendamentos/buscarAgendamentos.js';
 import { adicionarAgendamento, ErroValidacao } from '../database/agendamentos/adicionarAgendamento.js';
 import {
     atualizarStatusAgendamento,
@@ -40,6 +41,22 @@ app.get('/paciente', async (req: express.Request, res: express.Response) => {
         return responderSucesso(res, pacientes);
     } catch (error) {
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar paciente";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.get('/agendamentos', async (req: express.Request, res: express.Response) => {
+    try {
+        const start_date = req.query.start_date as string;
+        const end_date = req.query.end_date as string;
+        const agendamentos = await buscarAgendamentos(start_date, end_date);
+        return responderSucesso(res, agendamentos);
+    } catch (error) {
+        if (error instanceof ErroValidacaoBuscaAgendamentos) {
+            return responderErro(res, error.message, 400);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao buscar agendamentos";
         return responderErro(res, mensagem);
     }
 });
