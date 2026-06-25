@@ -10,6 +10,7 @@ import {
     ErroNaoEncontrado
 } from '../database/agendamentos/atualizarStatusAgendamento.js';
 import { adicionarMedico, ErroValidacao as ErroValidacaoMedico } from '../database/medicos/adicionarMedico.js';
+import { adicionarMedicos, ErroValidacao as ErroValidacaoMedicos } from '../database/medicos/adicionarMedicos.js';
 import { buscarMedicos } from '../database/medicos/buscarMedicos.js';
 import { adicionarAgenda, ErroValidacao as ErroValidacaoAgenda } from '../database/agendas/adicionarAgenda.js';
 import { buscarAgendas } from '../database/agendas/buscarAgendas.js';
@@ -126,6 +127,20 @@ app.post('/adicionarMedico', async (req: express.Request, res: express.Response)
         }
 
         const mensagem = error instanceof Error ? error.message : "Erro ao adicionar médico";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.post('/adicionarMedicos', async (req: express.Request, res: express.Response) => {
+    try {
+        const medicos = await adicionarMedicos(req.body.medicos);
+        return responderSucesso(res, medicos, 201);
+    } catch (error) {
+        if (error instanceof ErroValidacaoMedicos) {
+            return responderErro(res, error.message, 400);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao adicionar médicos";
         return responderErro(res, mensagem);
     }
 });
