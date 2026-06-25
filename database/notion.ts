@@ -1,14 +1,8 @@
-import type * as interfaces from "../utils/interfaces.js";
-
 const NOTION_API_TOKEN = process.env.NOTION_API_TOKEN || "";
 const NOTION_DATABASE_PAGE_ID = process.env.NOTION_DATABASE_PAGE_ID || "";
 
-function normalizarCpf(cpf: string): string {
-    return cpf.replace(/\D/g, "");
-}
-
 // Função auxiliar para fazer chamadas HTTP seguras para o Notion
-async function chamarNotionAPI(endpoint: string, método: string = "GET", corpo?: any) {
+export async function chamarNotionAPI(endpoint: string, método: string = "GET", corpo?: any) {
     const url = `https://api.notion.com/v1/${endpoint}`;
     
     const resposta = await fetch(url, {
@@ -41,46 +35,4 @@ export async function buscarTabelasBanco() {
         }));
 
     return tabelas;
-}
-
-export async function buscarPacientesPorCpf(cpf: string): Promise<interfaces.Paciente[]> {
-    const cpfNormalizado = normalizarCpf(cpf);
-
-    if (!cpfNormalizado) {
-        return [];
-    }
-
-    const tabelas = await buscarTabelasBanco();
-    const tabelaPacientes = tabelas.find(tabela => tabela.nome === "pacientes");
-    
-    if (!tabelaPacientes) {
-        throw new Error("Tabela de pacientes não encontrada na página base do Notion.");
-    }
-
-    const pacientes_pageid = tabelaPacientes.id;
-
-    // Faz a busca (Query) filtrada diretamente via POST no endpoint correto da API
-    const resultadoQuery = await chamarNotionAPI(`databases/${pacientes_pageid}/query`, "POST", {
-        filter: {
-            property: "cpf",
-            rich_text: {
-                equals: cpfNormalizado
-            }
-        }
-    });
-
-    // Mapeamento dos campos retornados em JSON puro
-    const pacientes: interfaces.Paciente[] = (resultadoQuery.results || []).map((page: any) => {
-        const props = page.properties;
-        return {
-            nome: props.nome?.title?.[0]?.text?.content || "Sem Nome",
-            cpf: props.cpf?.rich_text?.[0]?.text?.content || "",
-            id_unico: props.id_unico?.rich_text?.[0]?.text?.content || "",
-            data_nascimento: props.data_nascimento?.date?.start || "",
-            email: props.email?.email || "",
-            telefone: props.telefone?.phone_number || ""
-        };
-    });
-
-    return pacientes;
 }

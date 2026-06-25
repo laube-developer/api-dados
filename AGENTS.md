@@ -52,3 +52,7 @@ Atualmente, o projeto possui rotas para **Listar Tabelas** e **Buscar Paciente p
 Quando eu solicitar novas funcionalidades, você deve criar ou expandir funções seguindo este padrão de requisição via `fetch` para endpoints do Notion, focando em:
 1. **Adição de Dados (POST):** Enviar requisições para `https://notion.compages` mapeando o corpo de propriedades no formato exigido pela API do Notion.
 2. **Alteração de Dados (PATCH):** Atualizar propriedades de páginas existentes usando o ID da linha encontrada.
+
+## 5. DIRETRIZES DE EXECUÇÃO
+Nunca rode nenhum comando. 
+Ao final da tarefa de escrever o código, se tiver algo para testar, não faça. Me avise e apenas finalize a tarefa.
