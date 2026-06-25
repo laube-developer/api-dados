@@ -1,6 +1,12 @@
 import express from 'express';
 import { buscarTabelasBanco } from '../database/notion.js';
 import { buscarPaciente } from '../database/pacientes/buscarPaciente.js';
+import { adicionarPaciente, ErroValidacao as ErroValidacaoPaciente } from '../database/pacientes/adicionarPaciente.js';
+import {
+    atualizarPacientes,
+    ErroValidacao as ErroValidacaoAtualizacaoPacientes,
+    ErroNaoEncontrado as ErroNaoEncontradoPacientes
+} from '../database/pacientes/atualizarPacientes.js';
 import { buscarAgendamento, ErroValidacao as ErroValidacaoBusca } from '../database/agendamentos/buscarAgendamento.js';
 import { buscarAgendamentos, ErroValidacao as ErroValidacaoBuscaAgendamentos } from '../database/agendamentos/buscarAgendamentos.js';
 import { adicionarAgendamento, ErroValidacao } from '../database/agendamentos/adicionarAgendamento.js';
@@ -9,10 +15,25 @@ import {
     ErroValidacao as ErroValidacaoAtualizacao,
     ErroNaoEncontrado
 } from '../database/agendamentos/atualizarStatusAgendamento.js';
+import {
+    atualizarAgendamentos,
+    ErroValidacao as ErroValidacaoAtualizacaoAgendamentos,
+    ErroNaoEncontrado as ErroNaoEncontradoAgendamentos
+} from '../database/agendamentos/atualizarAgendamentos.js';
 import { adicionarMedico, ErroValidacao as ErroValidacaoMedico } from '../database/medicos/adicionarMedico.js';
 import { adicionarMedicos, ErroValidacao as ErroValidacaoMedicos } from '../database/medicos/adicionarMedicos.js';
+import {
+    atualizarMedicos,
+    ErroValidacao as ErroValidacaoAtualizacaoMedicos,
+    ErroNaoEncontrado as ErroNaoEncontradoMedicos
+} from '../database/medicos/atualizarMedicos.js';
 import { buscarMedicos } from '../database/medicos/buscarMedicos.js';
 import { adicionarAgenda, ErroValidacao as ErroValidacaoAgenda } from '../database/agendas/adicionarAgenda.js';
+import {
+    atualizarAgendas,
+    ErroValidacao as ErroValidacaoAtualizacaoAgendas,
+    ErroNaoEncontrado as ErroNaoEncontradoAgendas
+} from '../database/agendas/atualizarAgendas.js';
 import { buscarAgendas } from '../database/agendas/buscarAgendas.js';
 import { responderErro, responderSucesso } from '../utils/respostas.js';
 
@@ -42,6 +63,38 @@ app.get('/paciente', async (req: express.Request, res: express.Response) => {
         return responderSucesso(res, pacientes);
     } catch (error) {
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar paciente";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.post('/adicionarPaciente', async (req: express.Request, res: express.Response) => {
+    try {
+        const paciente = await adicionarPaciente(req.body);
+        return responderSucesso(res, paciente, 201);
+    } catch (error) {
+        if (error instanceof ErroValidacaoPaciente) {
+            return responderErro(res, error.message, 400);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao adicionar paciente";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.patch('/atualizarPacientes', async (req: express.Request, res: express.Response) => {
+    try {
+        const pacientes = await atualizarPacientes(req.body.pacientes);
+        return responderSucesso(res, pacientes);
+    } catch (error) {
+        if (error instanceof ErroValidacaoAtualizacaoPacientes) {
+            return responderErro(res, error.message, 400);
+        }
+
+        if (error instanceof ErroNaoEncontradoPacientes) {
+            return responderErro(res, error.message, 404);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao atualizar pacientes";
         return responderErro(res, mensagem);
     }
 });
@@ -117,6 +170,24 @@ app.post('/adicionarAgendamento', async (req: express.Request, res: express.Resp
     }
 });
 
+app.patch('/atualizarAgendamentos', async (req: express.Request, res: express.Response) => {
+    try {
+        const agendamentos = await atualizarAgendamentos(req.body.agendamentos);
+        return responderSucesso(res, agendamentos);
+    } catch (error) {
+        if (error instanceof ErroValidacaoAtualizacaoAgendamentos) {
+            return responderErro(res, error.message, 400);
+        }
+
+        if (error instanceof ErroNaoEncontradoAgendamentos) {
+            return responderErro(res, error.message, 404);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao atualizar agendamentos";
+        return responderErro(res, mensagem);
+    }
+});
+
 app.post('/adicionarMedico', async (req: express.Request, res: express.Response) => {
     try {
         const medico = await adicionarMedico(req.body);
@@ -141,6 +212,24 @@ app.post('/adicionarMedicos', async (req: express.Request, res: express.Response
         }
 
         const mensagem = error instanceof Error ? error.message : "Erro ao adicionar médicos";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.patch('/atualizarMedicos', async (req: express.Request, res: express.Response) => {
+    try {
+        const medicos = await atualizarMedicos(req.body.medicos);
+        return responderSucesso(res, medicos);
+    } catch (error) {
+        if (error instanceof ErroValidacaoAtualizacaoMedicos) {
+            return responderErro(res, error.message, 400);
+        }
+
+        if (error instanceof ErroNaoEncontradoMedicos) {
+            return responderErro(res, error.message, 404);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao atualizar médicos";
         return responderErro(res, mensagem);
     }
 });
@@ -175,6 +264,24 @@ app.get('/agendas', async (req: express.Request, res: express.Response) => {
         return responderSucesso(res, agendas);
     } catch (error) {
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar agendas";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.patch('/atualizarAgendas', async (req: express.Request, res: express.Response) => {
+    try {
+        const agendas = await atualizarAgendas(req.body.agendas);
+        return responderSucesso(res, agendas);
+    } catch (error) {
+        if (error instanceof ErroValidacaoAtualizacaoAgendas) {
+            return responderErro(res, error.message, 400);
+        }
+
+        if (error instanceof ErroNaoEncontradoAgendas) {
+            return responderErro(res, error.message, 404);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao atualizar agendas";
         return responderErro(res, mensagem);
     }
 });

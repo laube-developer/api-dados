@@ -49,10 +49,18 @@ export interface Medico {
     nome: string;
 }
 
+export type AtualizacaoMedico = Partial<Medico> & { id_unico: string };
+
 export interface Agenda {
     id_unico: string;
     nome: string;
 }
+
+export type AtualizacaoAgenda = Partial<Agenda> & { id_unico: string };
+
+export type AtualizacaoPaciente = Partial<Paciente> & { cpf: string };
+
+export type AtualizacaoAgendamento = Partial<Omit<Agendamento, "guia_assinada">> & { id_unico: string };
 
 export interface RespostaSucesso<T> {
     sucesso: true;
