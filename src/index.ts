@@ -1,6 +1,7 @@
 import express from 'express';
 import { buscarTabelasBanco } from '../database/notion.js';
 import { buscarPaciente } from '../database/pacientes/buscarPaciente.js';
+import { buscarPacientes } from '../database/pacientes/buscarPacientes.js';
 import { adicionarPaciente, ErroValidacao as ErroValidacaoPaciente } from '../database/pacientes/adicionarPaciente.js';
 import {
     atualizarPacientes,
@@ -18,6 +19,7 @@ import {
     ErroValidacao as ErroValidacaoReversao
 } from '../database/sincronizacao/reverterSincronizacao.js';
 import { adicionarAgendamento, ErroValidacao } from '../database/agendamentos/adicionarAgendamento.js';
+import { adicionarAgendamentos } from '../database/agendamentos/adicionarAgendamentos.js';
 import {
     atualizarStatusAgendamento,
     ErroValidacao as ErroValidacaoAtualizacao,
@@ -55,6 +57,16 @@ app.get('/tabelas', async (req: express.Request, res: express.Response) => {
         return responderSucesso(res, tabelas);
     } catch (error) {
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar tabelas";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.get('/pacientes', async (req: express.Request, res: express.Response) => {
+    try {
+        const pacientes = await buscarPacientes();
+        return responderSucesso(res, pacientes);
+    } catch (error) {
+        const mensagem = error instanceof Error ? error.message : "Erro ao buscar pacientes";
         return responderErro(res, mensagem);
     }
 });
@@ -180,6 +192,20 @@ app.patch('/atualizarStatusAgendamento', async (req: express.Request, res: expre
         }
 
         const mensagem = error instanceof Error ? error.message : "Erro ao atualizar status do agendamento";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.post('/adicionarAgendamentos', async (req: express.Request, res: express.Response) => {
+    try {
+        const agendamentos = await adicionarAgendamentos(req.body.agendamentos);
+        return responderSucesso(res, agendamentos, 201);
+    } catch (error) {
+        if (error instanceof ErroValidacao) {
+            return responderErro(res, error.message, 400);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao adicionar agendamentos";
         return responderErro(res, mensagem);
     }
 });

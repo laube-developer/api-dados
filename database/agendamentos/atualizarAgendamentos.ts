@@ -103,7 +103,6 @@ function validarListaAgendamentos(agendamentos: unknown): interfaces.Atualizacao
             "id_medico",
             "cpf_paciente",
             "id_tipo_procedimento",
-            "insurance_id"
         ];
 
         for (const campo of camposTexto) {
@@ -111,6 +110,10 @@ function validarListaAgendamentos(agendamentos: unknown): interfaces.Atualizacao
             if (valor !== undefined && (typeof valor !== "string" || !valor.trim())) {
                 erros.push(`O campo '${campo}' não pode estar vazio no item ${indice + 1}.`);
             }
+        }
+
+        if (item.insurance_id !== undefined && typeof item.insurance_id !== "string") {
+            erros.push(`O campo 'insurance_id' deve ser uma string no item ${indice + 1}.`);
         }
 
         return {

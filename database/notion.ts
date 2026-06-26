@@ -23,8 +23,16 @@ export async function chamarNotionAPI(endpoint: string, método: string = "GET",
     return resposta.json();
 }
 
+let cacheTabelasBanco: { expiraEm: number; tabelas: { id: string; nome: string }[] } | null = null;
+const TTL_CACHE_TABELAS_MS = 5 * 60 * 1000;
+
 export async function buscarTabelasBanco() {
-    // Lista os blocos filhos da página mãe para mapear os bancos inline
+    const agora = Date.now();
+
+    if (cacheTabelasBanco && agora < cacheTabelasBanco.expiraEm) {
+        return cacheTabelasBanco.tabelas;
+    }
+
     const dados = await chamarNotionAPI(`blocks/${NOTION_DATABASE_PAGE_ID}/children`);
 
     const tabelas = (dados.results || [])
@@ -33,6 +41,11 @@ export async function buscarTabelasBanco() {
             id: block.id,
             nome: block.child_database?.title?.toLowerCase().trim() || ""
         }));
+
+    cacheTabelasBanco = {
+        expiraEm: agora + TTL_CACHE_TABELAS_MS,
+        tabelas,
+    };
 
     return tabelas;
 }

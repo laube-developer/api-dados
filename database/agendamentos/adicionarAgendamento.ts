@@ -17,7 +17,14 @@ function validarData(data: string): boolean {
     return !Number.isNaN(Date.parse(data));
 }
 
-function validarDadosAgendamento(dados: interfaces.Agendamento): void {
+export function normalizarDadosAgendamento(dados: interfaces.Agendamento): interfaces.Agendamento {
+    return {
+        ...dados,
+        insurance_id: typeof dados.insurance_id === "string" ? dados.insurance_id.trim() : "",
+    };
+}
+
+export function validarDadosAgendamento(dados: interfaces.Agendamento): void {
     const erros: string[] = [];
 
     const camposTexto: (keyof interfaces.Agendamento)[] = [
@@ -28,7 +35,6 @@ function validarDadosAgendamento(dados: interfaces.Agendamento): void {
         "id_medico",
         "cpf_paciente",
         "id_tipo_procedimento",
-        "insurance_id"
     ];
 
     for (const campo of camposTexto) {
@@ -74,7 +80,44 @@ function validarDadosAgendamento(dados: interfaces.Agendamento): void {
     }
 }
 
-function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
+export function criarPropriedadesNotionAgendamento(dados: interfaces.Agendamento): Record<string, unknown> {
+    const cpfNormalizado = normalizarCpf(dados.cpf_paciente);
+
+    return {
+        id_agenda: {
+            rich_text: [{ text: { content: dados.id_agenda } }],
+        },
+        id_unico: {
+            rich_text: [{ text: { content: dados.id_unico } }],
+        },
+        data_hora_inicio: {
+            date: { start: dados.data_hora_inicio },
+        },
+        data_hora_fim: {
+            date: { start: dados.data_hora_fim },
+        },
+        id_medico: {
+            rich_text: [{ text: { content: dados.id_medico } }],
+        },
+        cpf_paciente: {
+            rich_text: [{ text: { content: cpfNormalizado } }],
+        },
+        id_tipo_procedimento: {
+            rich_text: [{ text: { content: dados.id_tipo_procedimento } }],
+        },
+        status: {
+            status: { name: dados.status },
+        },
+        guia_assinada: {
+            checkbox: dados.guia_assinada,
+        },
+        insurance_id: {
+            rich_text: [{ text: { content: dados.insurance_id } }],
+        },
+    };
+}
+
+export function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
     const props = page.properties;
     return {
         id_agenda: props.id_agenda?.rich_text?.[0]?.text?.content || "",
@@ -91,7 +134,9 @@ function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
 }
 
 export async function adicionarAgendamento(dados: interfaces.Agendamento): Promise<interfaces.Agendamento> {
-    validarDadosAgendamento(dados);
+    const dadosNormalizados = normalizarDadosAgendamento(dados);
+
+    validarDadosAgendamento(dadosNormalizados);
 
     const tabelas = await buscarTabelasBanco();
     const tabelaAgendamentos = tabelas.find(tabela => tabela.nome === "agendamentos");
@@ -100,42 +145,9 @@ export async function adicionarAgendamento(dados: interfaces.Agendamento): Promi
         throw new Error("Tabela de agendamentos não encontrada na página base do Notion.");
     }
 
-    const cpfNormalizado = normalizarCpf(dados.cpf_paciente);
-
     const resultado = await chamarNotionAPI("pages", "POST", {
         parent: { database_id: tabelaAgendamentos.id },
-        properties: {
-            id_agenda: {
-                rich_text: [{ text: { content: dados.id_agenda } }]
-            },
-            id_unico: {
-                rich_text: [{ text: { content: dados.id_unico } }]
-            },
-            data_hora_inicio: {
-                date: { start: dados.data_hora_inicio }
-            },
-            data_hora_fim: {
-                date: { start: dados.data_hora_fim }
-            },
-            id_medico: {
-                rich_text: [{ text: { content: dados.id_medico } }]
-            },
-            cpf_paciente: {
-                rich_text: [{ text: { content: cpfNormalizado } }]
-            },
-            id_tipo_procedimento: {
-                rich_text: [{ text: { content: dados.id_tipo_procedimento } }]
-            },
-            status: {
-                status: { name: dados.status }
-            },
-            guia_assinada: {
-                checkbox: dados.guia_assinada
-            },
-            insurance_id: {
-                rich_text: [{ text: { content: dados.insurance_id } }]
-            }
-        }
+        properties: criarPropriedadesNotionAgendamento(dadosNormalizados),
     });
 
     return mapearPaginaParaAgendamento(resultado);
