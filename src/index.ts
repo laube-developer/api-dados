@@ -46,10 +46,12 @@ import {
 } from './database/agendas/atualizarAgendas';
 import { buscarAgendas } from './database/agendas/buscarAgendas';
 import { responderErro, responderSucesso } from './utils/respostas';
+import { bearerAuth } from './middlewares/auth';
 
 const app = express();
 
 app.use(express.json());
+app.use(bearerAuth);
 
 app.get('/tabelas', async (req: express.Request, res: express.Response) => {
     try {
