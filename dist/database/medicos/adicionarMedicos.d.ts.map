@@ -1,0 +1,1 @@
+{"version":3,"file":"adicionarMedicos.d.ts","sourceRoot":"","sources":["../../../database/medicos/adicionarMedicos.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,KAAK,UAAU,MAAM,2BAA2B,CAAC;AAG7D,qBAAa,aAAc,SAAQ,KAAK;gBACxB,QAAQ,EAAE,MAAM;CAI/B;AA8CD,wBAAsB,gBAAgB,CAAC,OAAO,EAAE,OAAO,GAAG,OAAO,CAAC,UAAU,CAAC,MAAM,EAAE,CAAC,CA6BrF"}

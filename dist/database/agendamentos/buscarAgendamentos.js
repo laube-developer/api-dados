@@ -1,34 +1,21 @@
-import type * as interfaces from "../../utils/interfaces.js";
+import { diaSeguinte, normalizarDataHoraIso } from "../../utils/datas.js";
 import { buscarTabelasBanco, chamarNotionAPI } from "../notion.js";
-
 export class ErroValidacao extends Error {
-    constructor(mensagem: string) {
+    constructor(mensagem) {
         super(mensagem);
         this.name = "ErroValidacao";
     }
 }
-
-function normalizarCpf(cpf: string): string {
-    return cpf.replace(/\D/g, "");
+function validarDataIso(data) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(data) && !Number.isNaN(Date.parse(`${data}T12:00:00`));
 }
-
-function validarDataIso(data: string): boolean {
-    return /^\d{4}-\d{2}-\d{2}$/.test(data) && !Number.isNaN(Date.parse(`${data}T00:00:00`));
-}
-
-function diaSeguinte(data: string): string {
-    const proximoDia = new Date(`${data}T00:00:00`);
-    proximoDia.setDate(proximoDia.getDate() + 1);
-    return proximoDia.toISOString().split("T")[0] || "";
-}
-
-function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
+function mapearPaginaParaAgendamento(page) {
     const props = page.properties;
     return {
         id_agenda: props.id_agenda?.rich_text?.[0]?.text?.content || "",
         id_unico: props.id_unico?.rich_text?.[0]?.text?.content || "",
-        data_hora_inicio: props.data_hora_inicio?.date?.start || "",
-        data_hora_fim: props.data_hora_fim?.date?.start || "",
+        data_hora_inicio: normalizarDataHoraIso(props.data_hora_inicio?.date?.start || ""),
+        data_hora_fim: normalizarDataHoraIso(props.data_hora_fim?.date?.start || ""),
         id_medico: props.id_medico?.rich_text?.[0]?.text?.content || "",
         cpf_paciente: props.cpf_paciente?.rich_text?.[0]?.text?.content || "",
         id_tipo_procedimento: props.id_tipo_procedimento?.rich_text?.[0]?.text?.content || "",
@@ -37,51 +24,27 @@ function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
         insurance_id: props.insurance_id?.rich_text?.[0]?.text?.content || ""
     };
 }
-
-export async function buscarAgendamento(
-    cpf: string,
-    start_date: string,
-    end_date: string
-): Promise<interfaces.Agendamento[]> {
-    const cpfNormalizado = normalizarCpf(cpf);
-
-    if (!cpfNormalizado) {
-        return [];
-    }
-
+export async function buscarAgendamentos(start_date, end_date) {
     if (!start_date || !end_date) {
         throw new ErroValidacao("Os parâmetros 'start_date' e 'end_date' são obrigatórios (formato: YYYY-MM-DD).");
     }
-
     if (!validarDataIso(start_date) || !validarDataIso(end_date)) {
         throw new ErroValidacao("Os parâmetros 'start_date' e 'end_date' devem estar no formato YYYY-MM-DD.");
     }
-
     if (new Date(`${start_date}T00:00:00`) > new Date(`${end_date}T00:00:00`)) {
         throw new ErroValidacao("O parâmetro 'start_date' não pode ser posterior a 'end_date'.");
     }
-
     const tabelas = await buscarTabelasBanco();
     const tabelaAgendamentos = tabelas.find(tabela => tabela.nome === "agendamentos");
-
     if (!tabelaAgendamentos) {
         throw new Error("Tabela de agendamentos não encontrada na página base do Notion.");
     }
-
-    const agendamentos_pageid = tabelaAgendamentos.id;
-    const agendamentos: interfaces.Agendamento[] = [];
-    let cursor: string | undefined;
-
+    const agendamentos = [];
+    let cursor;
     do {
-        const corpo: Record<string, unknown> = {
+        const corpo = {
             filter: {
                 and: [
-                    {
-                        property: "cpf_paciente",
-                        rich_text: {
-                            equals: cpfNormalizado
-                        }
-                    },
                     {
                         property: "data_hora_inicio",
                         date: {
@@ -98,19 +61,15 @@ export async function buscarAgendamento(
             },
             page_size: 100
         };
-
         if (cursor) {
             corpo.start_cursor = cursor;
         }
-
-        const resultadoQuery = await chamarNotionAPI(`databases/${agendamentos_pageid}/query`, "POST", corpo);
-
+        const resultadoQuery = await chamarNotionAPI(`databases/${tabelaAgendamentos.id}/query`, "POST", corpo);
         for (const page of resultadoQuery.results || []) {
             agendamentos.push(mapearPaginaParaAgendamento(page));
         }
-
         cursor = resultadoQuery.has_more ? resultadoQuery.next_cursor : undefined;
     } while (cursor);
-
     return agendamentos;
 }
+//# sourceMappingURL=buscarAgendamentos.js.map
