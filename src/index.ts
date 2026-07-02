@@ -1,51 +1,51 @@
 import express from 'express';
-import { buscarTabelasBanco } from '../database/notion.js';
-import { buscarPaciente } from '../database/pacientes/buscarPaciente.js';
-import { buscarPacientes } from '../database/pacientes/buscarPacientes.js';
-import { adicionarPaciente, ErroValidacao as ErroValidacaoPaciente } from '../database/pacientes/adicionarPaciente.js';
+import { buscarTabelasBanco } from './database/notion';
+import { buscarPaciente } from './database/pacientes/buscarPaciente';
+import { buscarPacientes } from './database/pacientes/buscarPacientes';
+import { adicionarPaciente, ErroValidacao as ErroValidacaoPaciente } from './database/pacientes/adicionarPaciente';
 import {
     atualizarPacientes,
     ErroValidacao as ErroValidacaoAtualizacaoPacientes,
     ErroNaoEncontrado as ErroNaoEncontradoPacientes
-} from '../database/pacientes/atualizarPacientes.js';
-import { buscarAgendamento, ErroValidacao as ErroValidacaoBusca } from '../database/agendamentos/buscarAgendamento.js';
-import { buscarAgendamentos, ErroValidacao as ErroValidacaoBuscaAgendamentos } from '../database/agendamentos/buscarAgendamentos.js';
+} from './database/pacientes/atualizarPacientes';
+import { buscarAgendamento, ErroValidacao as ErroValidacaoBusca } from './database/agendamentos/buscarAgendamento';
+import { buscarAgendamentos, ErroValidacao as ErroValidacaoBuscaAgendamentos } from './database/agendamentos/buscarAgendamentos';
 import {
     buscarAgendamentoPorId,
     ErroValidacao as ErroValidacaoBuscaAgendamentoPorId
-} from '../database/agendamentos/buscarAgendamentoPorId.js';
+} from './database/agendamentos/buscarAgendamentoPorId';
 import {
     reverterSincronizacao,
     ErroValidacao as ErroValidacaoReversao
-} from '../database/sincronizacao/reverterSincronizacao.js';
-import { adicionarAgendamento, ErroValidacao } from '../database/agendamentos/adicionarAgendamento.js';
-import { adicionarAgendamentos } from '../database/agendamentos/adicionarAgendamentos.js';
+} from './database/sincronizacao/reverterSincronizacao';
+import { adicionarAgendamento, ErroValidacao } from './database/agendamentos/adicionarAgendamento';
+import { adicionarAgendamentos } from './database/agendamentos/adicionarAgendamentos';
 import {
     atualizarStatusAgendamento,
     ErroValidacao as ErroValidacaoAtualizacao,
     ErroNaoEncontrado
-} from '../database/agendamentos/atualizarStatusAgendamento.js';
+} from './database/agendamentos/atualizarStatusAgendamento';
 import {
     atualizarAgendamentos,
     ErroValidacao as ErroValidacaoAtualizacaoAgendamentos,
     ErroNaoEncontrado as ErroNaoEncontradoAgendamentos
-} from '../database/agendamentos/atualizarAgendamentos.js';
-import { adicionarMedico, ErroValidacao as ErroValidacaoMedico } from '../database/medicos/adicionarMedico.js';
-import { adicionarMedicos, ErroValidacao as ErroValidacaoMedicos } from '../database/medicos/adicionarMedicos.js';
+} from './database/agendamentos/atualizarAgendamentos';
+import { adicionarMedico, ErroValidacao as ErroValidacaoMedico } from './database/medicos/adicionarMedico';
+import { adicionarMedicos, ErroValidacao as ErroValidacaoMedicos } from './database/medicos/adicionarMedicos';
 import {
     atualizarMedicos,
     ErroValidacao as ErroValidacaoAtualizacaoMedicos,
     ErroNaoEncontrado as ErroNaoEncontradoMedicos
-} from '../database/medicos/atualizarMedicos.js';
-import { buscarMedicos } from '../database/medicos/buscarMedicos.js';
-import { adicionarAgenda, ErroValidacao as ErroValidacaoAgenda } from '../database/agendas/adicionarAgenda.js';
+} from './database/medicos/atualizarMedicos';
+import { buscarMedicos } from './database/medicos/buscarMedicos';
+import { adicionarAgenda, ErroValidacao as ErroValidacaoAgenda } from './database/agendas/adicionarAgenda';
 import {
     atualizarAgendas,
     ErroValidacao as ErroValidacaoAtualizacaoAgendas,
     ErroNaoEncontrado as ErroNaoEncontradoAgendas
-} from '../database/agendas/atualizarAgendas.js';
-import { buscarAgendas } from '../database/agendas/buscarAgendas.js';
-import { responderErro, responderSucesso } from '../utils/respostas.js';
+} from './database/agendas/atualizarAgendas';
+import { buscarAgendas } from './database/agendas/buscarAgendas';
+import { responderErro, responderSucesso } from './utils/respostas';
 
 const app = express();
 

@@ -1,5 +1,5 @@
-import type * as interfaces from "../../utils/interfaces.js";
-import { buscarTabelasBanco, chamarNotionAPI } from "../notion.js";
+import type * as interfaces from "../../utils/interfaces";
+import { buscarTabelasBanco, chamarNotionAPI } from "../notion";
 
 export class ErroValidacao extends Error {
     constructor(mensagem: string) {

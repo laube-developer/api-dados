@@ -1,4 +1,4 @@
-import type * as interfaces from "../../utils/interfaces.js";
+import type * as interfaces from "../../utils/interfaces";
 import { buscarTabelasBanco, chamarNotionAPI } from "../notion.js";
 import {
     ErroValidacao,

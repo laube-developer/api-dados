@@ -1,4 +1,4 @@
-import { buscarTabelasBanco, chamarNotionAPI } from "./notion.js";
+import { buscarTabelasBanco, chamarNotionAPI } from "./notion";
 
 export async function buscarPaginaPorCampoTexto(
     nomeTabela: string,
