@@ -41,6 +41,7 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
 
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "outDir": "./dist"
   }
 }
