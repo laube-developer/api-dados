@@ -5,6 +5,8 @@ const NOTION_DATABASE_PAGE_ID = process.env.NOTION_DATABASE_PAGE_ID || "";
 export async function chamarNotionAPI(endpoint: string, método: string = "GET", corpo?: any) {
     const url = `${process.env.NOTION_API_URL}/${endpoint}`;
     
+    console.log("Fetch: chamarNotionAPI -> " + url);
+
     const resposta = await fetch(url, {
         method: método,
         headers: {
