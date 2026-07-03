@@ -60,6 +60,7 @@ app.get('/tabelas', async (req: express.Request, res: express.Response) => {
         return responderSucesso(res, tabelas);
     } catch (error) {
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar tabelas";
+        console.error(error);
         return responderErro(res, mensagem);
     }
 });
@@ -70,6 +71,7 @@ app.get('/pacientes', async (req: express.Request, res: express.Response) => {
         return responderSucesso(res, pacientes);
     } catch (error) {
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar pacientes";
+        console.error(error);
         return responderErro(res, mensagem);
     }
 });
@@ -86,6 +88,7 @@ app.get('/paciente', async (req: express.Request, res: express.Response) => {
         return responderSucesso(res, pacientes);
     } catch (error) {
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar paciente";
+        console.error(error);
         return responderErro(res, mensagem);
     }
 });
@@ -96,10 +99,12 @@ app.post('/adicionarPaciente', async (req: express.Request, res: express.Respons
         return responderSucesso(res, paciente, 201);
     } catch (error) {
         if (error instanceof ErroValidacaoPaciente) {
+            console.error(error);
             return responderErro(res, error.message, 400);
         }
 
         const mensagem = error instanceof Error ? error.message : "Erro ao adicionar paciente";
+        console.error(error);
         return responderErro(res, mensagem);
     }
 });
@@ -109,6 +114,7 @@ app.patch('/atualizarPacientes', async (req: express.Request, res: express.Respo
         const pacientes = await atualizarPacientes(req.body.pacientes);
         return responderSucesso(res, pacientes);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoAtualizacaoPacientes) {
             return responderErro(res, error.message, 400);
         }
@@ -133,6 +139,7 @@ app.get('/agendamentoPorId', async (req: express.Request, res: express.Response)
 
         return responderSucesso(res, agendamento);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoBuscaAgendamentoPorId) {
             return responderErro(res, error.message, 400);
         }
@@ -149,6 +156,7 @@ app.get('/agendamentos', async (req: express.Request, res: express.Response) => 
         const agendamentos = await buscarAgendamentos(start_date, end_date);
         return responderSucesso(res, agendamentos);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoBuscaAgendamentos) {
             return responderErro(res, error.message, 400);
         }
@@ -171,6 +179,7 @@ app.get('/agendamento', async (req: express.Request, res: express.Response) => {
 
         return responderSucesso(res, agendamentos);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoBusca) {
             return responderErro(res, error.message, 400);
         }
@@ -186,6 +195,7 @@ app.patch('/atualizarStatusAgendamento', async (req: express.Request, res: expre
         const agendamento = await atualizarStatusAgendamento(id_unico, status);
         return responderSucesso(res, agendamento);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoAtualizacao) {
             return responderErro(res, error.message, 400);
         }
@@ -204,6 +214,7 @@ app.post('/adicionarAgendamentos', async (req: express.Request, res: express.Res
         const agendamentos = await adicionarAgendamentos(req.body.agendamentos);
         return responderSucesso(res, agendamentos, 201);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacao) {
             return responderErro(res, error.message, 400);
         }
@@ -218,6 +229,7 @@ app.post('/adicionarAgendamento', async (req: express.Request, res: express.Resp
         const agendamento = await adicionarAgendamento(req.body);
         return responderSucesso(res, agendamento, 201);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacao) {
             return responderErro(res, error.message, 400);
         }
@@ -232,6 +244,7 @@ app.patch('/atualizarAgendamentos', async (req: express.Request, res: express.Re
         const agendamentos = await atualizarAgendamentos(req.body.agendamentos);
         return responderSucesso(res, agendamentos);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoAtualizacaoAgendamentos) {
             return responderErro(res, error.message, 400);
         }
@@ -250,6 +263,7 @@ app.post('/adicionarMedico', async (req: express.Request, res: express.Response)
         const medico = await adicionarMedico(req.body);
         return responderSucesso(res, medico, 201);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoMedico) {
             return responderErro(res, error.message, 400);
         }
@@ -264,6 +278,7 @@ app.post('/adicionarMedicos', async (req: express.Request, res: express.Response
         const medicos = await adicionarMedicos(req.body.medicos);
         return responderSucesso(res, medicos, 201);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoMedicos) {
             return responderErro(res, error.message, 400);
         }
@@ -278,6 +293,7 @@ app.patch('/atualizarMedicos', async (req: express.Request, res: express.Respons
         const medicos = await atualizarMedicos(req.body.medicos);
         return responderSucesso(res, medicos);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoAtualizacaoMedicos) {
             return responderErro(res, error.message, 400);
         }
@@ -296,6 +312,7 @@ app.get('/medicos', async (req: express.Request, res: express.Response) => {
         const medicos = await buscarMedicos();
         return responderSucesso(res, medicos);
     } catch (error) {
+        console.error(error);
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar médicos";
         return responderErro(res, mensagem);
     }
@@ -306,6 +323,7 @@ app.post('/adicionarAgenda', async (req: express.Request, res: express.Response)
         const agenda = await adicionarAgenda(req.body);
         return responderSucesso(res, agenda, 201);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoAgenda) {
             return responderErro(res, error.message, 400);
         }
@@ -320,6 +338,7 @@ app.get('/agendas', async (req: express.Request, res: express.Response) => {
         const agendas = await buscarAgendas();
         return responderSucesso(res, agendas);
     } catch (error) {
+        console.error(error);
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar agendas";
         return responderErro(res, mensagem);
     }
@@ -330,6 +349,7 @@ app.patch('/atualizarAgendas', async (req: express.Request, res: express.Respons
         const agendas = await atualizarAgendas(req.body.agendas);
         return responderSucesso(res, agendas);
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoAtualizacaoAgendas) {
             return responderErro(res, error.message, 400);
         }
@@ -348,6 +368,7 @@ app.post('/reverterSincronizacao', async (req: express.Request, res: express.Res
         await reverterSincronizacao(req.body);
         return responderSucesso(res, { revertido: true });
     } catch (error) {
+        console.error(error);
         if (error instanceof ErroValidacaoReversao) {
             return responderErro(res, error.message, 400);
         }
