@@ -3,7 +3,7 @@ const NOTION_DATABASE_PAGE_ID = process.env.NOTION_DATABASE_PAGE_ID || "";
 
 // Função auxiliar para fazer chamadas HTTP seguras para o Notion
 export async function chamarNotionAPI(endpoint: string, método: string = "GET", corpo?: any) {
-    const url = `https://api.notion.com/v1/${endpoint}`;
+    const url = `${process.env.NOTION_API_URL}/${endpoint}`;
     
     const resposta = await fetch(url, {
         method: método,
