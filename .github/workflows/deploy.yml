@@ -17,6 +17,8 @@ jobs:
           username: root
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
+            set -e
+
             echo "=== Iniciando deploy ==="
             cd /root/api-dados
             git pull origin main
@@ -28,6 +30,6 @@ jobs:
             npm run build:clean
 
             echo "=== Reiniciando aplicação com PM2 ==="
-            pm2 reload api-dados --update-env || pm2 start dist/index.js --name app-teste
+            pm2 reload api-dados --update-env || pm2 start dist/index.js --name api-dados
             
             echo "Deploy finalizado com sucesso!"
