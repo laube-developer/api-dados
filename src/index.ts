@@ -1,3 +1,4 @@
+import "dotenv/config"
 import express from 'express';
 import { buscarTabelasBanco } from './database/notion';
 import { buscarPaciente } from './database/pacientes/buscarPaciente';
@@ -47,7 +48,7 @@ import {
 import { buscarAgendas } from './database/agendas/buscarAgendas';
 import { responderErro, responderSucesso } from './utils/respostas';
 import { bearerAuth } from './middlewares/auth';
-import "dotenv/config"
+
 
 const app = express();
 
