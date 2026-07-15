@@ -79,8 +79,8 @@ app.get('/pacientes', async (req: express.Request, res: express.Response) => {
 
 app.get('/paciente', async (req: express.Request, res: express.Response) => {
     try {
-        const cpf = req.query.cpf as string;
-        const pacientes = await buscarPaciente(cpf);
+        const cpfOrName = req.query.cpf_or_name as string;
+        const pacientes = await buscarPaciente(cpfOrName);
 
         if (!pacientes || pacientes.length === 0) {
             return responderErro(res, "Paciente não encontrado", 404);

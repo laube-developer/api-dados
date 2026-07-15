@@ -83,13 +83,15 @@ Lista as tabelas inline disponíveis na página mãe do Notion.
 
 ### `GET /paciente`
 
-Busca paciente(s) pelo CPF.
+Busca paciente(s) pelo CPF ou pelo nome.
+
+A pesquisa usa um único parâmetro e aplica filtro **OU** no Notion: igualdade no campo `cpf` (quando o valor contém dígitos) e correspondência parcial (`contains`) no campo `nome`.
 
 **Query params:**
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `cpf` | `string` | Sim | CPF do paciente (com ou sem formatação) |
+| `cpf_or_name` | `string` | Sim | CPF do paciente (com ou sem formatação) **ou** nome (parcial ou completo) |
 
 **Resposta (`dados`):** array de `Paciente`
 
@@ -102,10 +104,11 @@ Busca paciente(s) pelo CPF.
 | `email` | `string` | E-mail |
 | `telefone` | `string` | Telefone |
 
-**Exemplo:**
+**Exemplos:**
 
 ```
-GET /paciente?cpf=12345678900
+GET /paciente?cpf_or_name=12345678900
+GET /paciente?cpf_or_name=Rafael
 ```
 
 ```json
@@ -124,7 +127,7 @@ GET /paciente?cpf=12345678900
 }
 ```
 
-**Erro 404:** CPF não encontrado.
+**Erro 404:** nenhum paciente encontrado para o CPF ou nome informado.
 
 ---
 
