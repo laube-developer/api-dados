@@ -19,6 +19,29 @@ function normalizarCpf(cpf: string): string {
     return cpf.replace(/\D/g, "");
 }
 
+/**
+ * Notion exige ISO 8601 (YYYY-MM-DD ou datetime). String vazia gera validation_error.
+ * Retorna a data normalizada, null para limpar o campo, ou undefined se inválida e não vazia.
+ */
+function normalizarDataNascimento(valor: unknown): string | null | undefined {
+    if (valor == null) {
+        return null;
+    }
+
+    const texto = String(valor).trim();
+    if (!texto) {
+        return null;
+    }
+
+    // Aceita YYYY-MM-DD ou ISO com horário; Notion usa a parte da data no start.
+    const isoDate = texto.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (!isoDate) {
+        return undefined;
+    }
+
+    return isoDate[1];
+}
+
 function mapearPaginaParaPaciente(page: any): interfaces.Paciente {
     const props = page.properties;
     return {
@@ -64,11 +87,21 @@ function validarListaPacientes(pacientes: unknown): interfaces.AtualizacaoPacien
             erros.push(`O campo 'id_unico' não pode estar vazio no item ${indice + 1}.`);
         }
 
+        let dataNascimento: string | null | undefined;
+        if (item.data_nascimento !== undefined) {
+            dataNascimento = normalizarDataNascimento(item.data_nascimento);
+            if (dataNascimento === undefined) {
+                erros.push(
+                    `O campo 'data_nascimento' do item ${indice + 1} deve ser uma data ISO 8601 válida (YYYY-MM-DD).`
+                );
+            }
+        }
+
         return {
             cpf: cpfNormalizado,
             ...(item.nome !== undefined ? { nome: item.nome.trim() } : {}),
             ...(item.id_unico !== undefined ? { id_unico: item.id_unico.trim() } : {}),
-            ...(item.data_nascimento !== undefined ? { data_nascimento: item.data_nascimento } : {}),
+            ...(dataNascimento !== undefined ? { data_nascimento: dataNascimento ?? "" } : {}),
             ...(item.email !== undefined ? { email: item.email } : {}),
             ...(item.telefone !== undefined ? { telefone: item.telefone } : {})
         };
@@ -129,20 +162,23 @@ export async function atualizarPacientes(pacientes: unknown): Promise<interfaces
         }
 
         if (paciente.data_nascimento !== undefined) {
-            properties.data_nascimento = {
-                date: { start: paciente.data_nascimento }
-            };
+            const dataNormalizada = normalizarDataNascimento(paciente.data_nascimento);
+            // String vazia/null limpa o campo; data válida grava ISO; inválida já barrada na validação.
+            properties.data_nascimento = dataNormalizada
+                ? { date: { start: dataNormalizada } }
+                : { date: null };
         }
 
         if (paciente.email !== undefined) {
+            // E-mail vazio limpa o campo no Notion (não aceita string vazia em alguns casos).
             properties.email = {
-                email: paciente.email
+                email: paciente.email?.trim() ? paciente.email.trim() : null
             };
         }
 
         if (paciente.telefone !== undefined) {
             properties.telefone = {
-                phone_number: paciente.telefone
+                phone_number: paciente.telefone?.trim() ? paciente.telefone.trim() : null
             };
         }
 

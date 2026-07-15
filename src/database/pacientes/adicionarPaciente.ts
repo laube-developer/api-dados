@@ -79,9 +79,12 @@ export async function adicionarPaciente(dados: interfaces.Paciente): Promise<int
     };
 
     if (dados.data_nascimento?.trim()) {
-        properties.data_nascimento = {
-            date: { start: dados.data_nascimento.trim() }
-        };
+        const match = dados.data_nascimento.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+        if (match) {
+            properties.data_nascimento = {
+                date: { start: match[1] }
+            };
+        }
     }
 
     if (dados.email?.trim()) {
