@@ -27,7 +27,10 @@ function validarData(data: string): boolean {
 export function normalizarDadosAgendamento(dados: interfaces.Agendamento): interfaces.Agendamento {
     return {
         ...dados,
+        id_paciente: typeof dados.id_paciente === "string" ? dados.id_paciente.trim() : String(dados.id_paciente ?? "").trim(),
+        nome_paciente: typeof dados.nome_paciente === "string" ? dados.nome_paciente.trim() : "",
         insurance_id: typeof dados.insurance_id === "string" ? dados.insurance_id.trim() : "",
+        cpf_paciente: normalizarCpf(dados.cpf_paciente),
     };
 }
 
@@ -40,6 +43,8 @@ export function validarDadosAgendamento(dados: interfaces.Agendamento): void {
         "data_hora_inicio",
         "data_hora_fim",
         "id_medico",
+        "id_paciente",
+        "nome_paciente",
         "id_tipo_procedimento",
     ];
 
@@ -59,7 +64,6 @@ export function validarDadosAgendamento(dados: interfaces.Agendamento): void {
     }
 
     // CPF é opcional: nem todo paciente possui CPF cadastrado no sistema.
-    // Se informado, deve ter 11 dígitos; se undefined/vazio, é permitido.
     const cpfNormalizado = normalizarCpf(dados.cpf_paciente);
     if (cpfNormalizado && cpfNormalizado.length !== 11) {
         erros.push("O campo 'cpf_paciente' deve conter um CPF válido com 11 dígitos.");
@@ -107,6 +111,12 @@ export function criarPropriedadesNotionAgendamento(dados: interfaces.Agendamento
         id_medico: {
             rich_text: [{ text: { content: dados.id_medico } }],
         },
+        id_paciente: {
+            rich_text: [{ text: { content: dados.id_paciente } }],
+        },
+        nome_paciente: {
+            rich_text: [{ text: { content: dados.nome_paciente } }],
+        },
         cpf_paciente: {
             rich_text: [{ text: { content: cpfNormalizado } }],
         },
@@ -133,6 +143,8 @@ export function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
         data_hora_inicio: props.data_hora_inicio?.date?.start || "",
         data_hora_fim: props.data_hora_fim?.date?.start || "",
         id_medico: props.id_medico?.rich_text?.[0]?.text?.content || "",
+        id_paciente: props.id_paciente?.rich_text?.[0]?.text?.content || "",
+        nome_paciente: props.nome_paciente?.rich_text?.[0]?.text?.content || "",
         cpf_paciente: props.cpf_paciente?.rich_text?.[0]?.text?.content || "",
         id_tipo_procedimento: props.id_tipo_procedimento?.rich_text?.[0]?.text?.content || "",
         status: props.status?.status?.name || "",

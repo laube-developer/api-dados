@@ -17,8 +17,11 @@ export class ErroNaoEncontrado extends Error {
     }
 }
 
-function normalizarCpf(cpf: string): string {
-    return cpf.replace(/\D/g, "");
+function normalizarCpf(cpf: string | null | undefined): string {
+    if (cpf == null) {
+        return "";
+    }
+    return String(cpf).replace(/\D/g, "");
 }
 
 function validarData(data: string): boolean {
@@ -33,6 +36,8 @@ function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
         data_hora_inicio: normalizarDataHoraIso(props.data_hora_inicio?.date?.start || ""),
         data_hora_fim: normalizarDataHoraIso(props.data_hora_fim?.date?.start || ""),
         id_medico: props.id_medico?.rich_text?.[0]?.text?.content || "",
+        id_paciente: props.id_paciente?.rich_text?.[0]?.text?.content || "",
+        nome_paciente: props.nome_paciente?.rich_text?.[0]?.text?.content || "",
         cpf_paciente: props.cpf_paciente?.rich_text?.[0]?.text?.content || "",
         id_tipo_procedimento: props.id_tipo_procedimento?.rich_text?.[0]?.text?.content || "",
         status: props.status?.status?.name || "",
@@ -73,7 +78,7 @@ function validarListaAgendamentos(agendamentos: unknown): interfaces.Atualizacao
 
         if (item.cpf_paciente !== undefined) {
             const cpfNormalizado = normalizarCpf(item.cpf_paciente);
-            if (cpfNormalizado.length !== 11) {
+            if (cpfNormalizado && cpfNormalizado.length !== 11) {
                 erros.push(`O campo 'cpf_paciente' do item ${indice + 1} deve conter um CPF válido com 11 dígitos.`);
             }
         }
@@ -101,7 +106,8 @@ function validarListaAgendamentos(agendamentos: unknown): interfaces.Atualizacao
             "data_hora_inicio",
             "data_hora_fim",
             "id_medico",
-            "cpf_paciente",
+            "id_paciente",
+            "nome_paciente",
             "id_tipo_procedimento",
         ];
 
@@ -122,6 +128,8 @@ function validarListaAgendamentos(agendamentos: unknown): interfaces.Atualizacao
             ...(item.data_hora_inicio !== undefined ? { data_hora_inicio: item.data_hora_inicio.trim() } : {}),
             ...(item.data_hora_fim !== undefined ? { data_hora_fim: item.data_hora_fim.trim() } : {}),
             ...(item.id_medico !== undefined ? { id_medico: item.id_medico.trim() } : {}),
+            ...(item.id_paciente !== undefined ? { id_paciente: item.id_paciente.trim() } : {}),
+            ...(item.nome_paciente !== undefined ? { nome_paciente: item.nome_paciente.trim() } : {}),
             ...(item.cpf_paciente !== undefined ? { cpf_paciente: normalizarCpf(item.cpf_paciente) } : {}),
             ...(item.id_tipo_procedimento !== undefined ? { id_tipo_procedimento: item.id_tipo_procedimento.trim() } : {}),
             ...(item.status !== undefined ? { status: item.status } : {}),
@@ -192,6 +200,18 @@ export async function atualizarAgendamentos(agendamentos: unknown): Promise<inte
         if (agendamento.id_medico !== undefined) {
             properties.id_medico = {
                 rich_text: [{ text: { content: agendamento.id_medico } }]
+            };
+        }
+
+        if (agendamento.id_paciente !== undefined) {
+            properties.id_paciente = {
+                rich_text: [{ text: { content: agendamento.id_paciente } }]
+            };
+        }
+
+        if (agendamento.nome_paciente !== undefined) {
+            properties.nome_paciente = {
+                rich_text: [{ text: { content: agendamento.nome_paciente } }]
             };
         }
 

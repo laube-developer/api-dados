@@ -1,8 +1,8 @@
 import type * as interfaces from "../../utils/interfaces.js";
 import { buscarTabelasBanco, chamarNotionAPI } from "../notion.js";
 
-function normalizarCpf(cpf: string): string {
-    return cpf.replace(/\D/g, "");
+function normalizarDigitos(valor: string): string {
+    return valor.replace(/\D/g, "");
 }
 
 function mapearPaginaParaPaciente(page: any): interfaces.Paciente {
@@ -17,6 +17,12 @@ function mapearPaginaParaPaciente(page: any): interfaces.Paciente {
     };
 }
 
+/**
+ * Busca pacientes por nome, CPF ou telefone.
+ * - Nome: contains no título
+ * - CPF: equals com 11 dígitos
+ * - Telefone: contains no phone_number (a partir de 8 dígitos)
+ */
 export async function buscarPaciente(cpfOrName: string): Promise<interfaces.Paciente[]> {
     const termo = (cpfOrName || "").trim();
 
@@ -31,8 +37,7 @@ export async function buscarPaciente(cpfOrName: string): Promise<interfaces.Paci
         throw new Error("Tabela de pacientes não encontrada na página base do Notion.");
     }
 
-    const pacientes_pageid = tabelaPacientes.id;
-    const cpfNormalizado = normalizarCpf(termo);
+    const digitos = normalizarDigitos(termo);
 
     const filtros: object[] = [
         {
@@ -43,21 +48,27 @@ export async function buscarPaciente(cpfOrName: string): Promise<interfaces.Paci
         }
     ];
 
-    // Só inclui filtro por CPF quando o termo possui dígitos (evita equals vazio).
-    if (cpfNormalizado) {
+    if (digitos.length === 11) {
         filtros.push({
             property: "cpf",
             rich_text: {
-                equals: cpfNormalizado
+                equals: digitos
             }
         });
     }
 
-    const resultadoQuery = await chamarNotionAPI(`databases/${pacientes_pageid}/query`, "POST", {
+    if (digitos.length >= 8) {
+        filtros.push({
+            property: "telefone",
+            phone_number: {
+                contains: digitos
+            }
+        });
+    }
+
+    const resultadoQuery = await chamarNotionAPI(`databases/${tabelaPacientes.id}/query`, "POST", {
         filter: filtros.length === 1 ? filtros[0] : { or: filtros }
     });
 
-    const pacientes: interfaces.Paciente[] = (resultadoQuery.results || []).map(mapearPaginaParaPaciente);
-
-    return pacientes;
+    return (resultadoQuery.results || []).map(mapearPaginaParaPaciente);
 }

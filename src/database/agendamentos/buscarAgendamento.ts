@@ -1,4 +1,5 @@
 import type * as interfaces from "../../utils/interfaces";
+import { diaSeguinte } from "../../utils/datas.js";
 import { buscarTabelasBanco, chamarNotionAPI } from "../notion";
 
 export class ErroValidacao extends Error {
@@ -8,18 +9,8 @@ export class ErroValidacao extends Error {
     }
 }
 
-function normalizarCpf(cpf: string): string {
-    return cpf.replace(/\D/g, "");
-}
-
 function validarDataIso(data: string): boolean {
-    return /^\d{4}-\d{2}-\d{2}$/.test(data) && !Number.isNaN(Date.parse(`${data}T00:00:00`));
-}
-
-function diaSeguinte(data: string): string {
-    const proximoDia = new Date(`${data}T00:00:00`);
-    proximoDia.setDate(proximoDia.getDate() + 1);
-    return proximoDia.toISOString().split("T")[0] || "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(data) && !Number.isNaN(Date.parse(`${data}T12:00:00`));
 }
 
 function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
@@ -30,6 +21,8 @@ function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
         data_hora_inicio: props.data_hora_inicio?.date?.start || "",
         data_hora_fim: props.data_hora_fim?.date?.start || "",
         id_medico: props.id_medico?.rich_text?.[0]?.text?.content || "",
+        id_paciente: props.id_paciente?.rich_text?.[0]?.text?.content || "",
+        nome_paciente: props.nome_paciente?.rich_text?.[0]?.text?.content || "",
         cpf_paciente: props.cpf_paciente?.rich_text?.[0]?.text?.content || "",
         id_tipo_procedimento: props.id_tipo_procedimento?.rich_text?.[0]?.text?.content || "",
         status: props.status?.status?.name || "",
@@ -38,15 +31,19 @@ function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
     };
 }
 
+/**
+ * Busca agendamentos de um paciente no período.
+ * Filtro principal: id_paciente (id_unico do paciente).
+ */
 export async function buscarAgendamento(
-    cpf: string,
+    id_paciente: string,
     start_date: string,
     end_date: string
 ): Promise<interfaces.Agendamento[]> {
-    const cpfNormalizado = normalizarCpf(cpf);
+    const idPaciente = String(id_paciente || "").trim();
 
-    if (!cpfNormalizado) {
-        return [];
+    if (!idPaciente) {
+        throw new ErroValidacao("O parâmetro 'id_paciente' é obrigatório.");
     }
 
     if (!start_date || !end_date) {
@@ -77,9 +74,9 @@ export async function buscarAgendamento(
             filter: {
                 and: [
                     {
-                        property: "cpf_paciente",
+                        property: "id_paciente",
                         rich_text: {
-                            equals: cpfNormalizado
+                            equals: idPaciente
                         }
                     },
                     {

@@ -217,10 +217,11 @@ app.get('/agendamentos', async (req: express.Request, res: express.Response) => 
 
 app.get('/agendamento', async (req: express.Request, res: express.Response) => {
     try {
-        const cpf = req.query.cpf as string;
+        // Preferência: id_paciente (id_unico do paciente). cpf mantido só por compatibilidade legada.
+        const id_paciente = (req.query.id_paciente as string) || "";
         const start_date = req.query.start_date as string;
         const end_date = req.query.end_date as string;
-        const agendamentos = await buscarAgendamento(cpf, start_date, end_date);
+        const agendamentos = await buscarAgendamento(id_paciente, start_date, end_date);
 
         if (!agendamentos || agendamentos.length === 0) {
             return responderErro(res, "Agendamento não encontrado", 404);

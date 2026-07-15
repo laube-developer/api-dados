@@ -17,6 +17,8 @@ function mapearPaginaParaAgendamento(page: any): interfaces.Agendamento {
         data_hora_inicio: normalizarDataHoraIso(props.data_hora_inicio?.date?.start || ""),
         data_hora_fim: normalizarDataHoraIso(props.data_hora_fim?.date?.start || ""),
         id_medico: props.id_medico?.rich_text?.[0]?.text?.content || "",
+        id_paciente: props.id_paciente?.rich_text?.[0]?.text?.content || "",
+        nome_paciente: props.nome_paciente?.rich_text?.[0]?.text?.content || "",
         cpf_paciente: props.cpf_paciente?.rich_text?.[0]?.text?.content || "",
         id_tipo_procedimento: props.id_tipo_procedimento?.rich_text?.[0]?.text?.content || "",
         status: props.status?.status?.name || "",
