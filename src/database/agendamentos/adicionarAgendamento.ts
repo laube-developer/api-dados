@@ -33,7 +33,6 @@ export function validarDadosAgendamento(dados: interfaces.Agendamento): void {
         "data_hora_inicio",
         "data_hora_fim",
         "id_medico",
-        "cpf_paciente",
         "id_tipo_procedimento",
     ];
 
