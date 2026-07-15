@@ -9,8 +9,15 @@ export class ErroValidacao extends Error {
     }
 }
 
-function normalizarCpf(cpf: string): string {
-    return cpf.replace(/\D/g, "");
+function normalizarCpf(cpf: string | null | undefined): string {
+    if (cpf == null) {
+        return "";
+    }
+    const texto = String(cpf).trim();
+    if (!texto) {
+        return "";
+    }
+    return texto.replace(/\D/g, "");
 }
 
 function validarData(data: string): boolean {
@@ -51,8 +58,10 @@ export function validarDadosAgendamento(dados: interfaces.Agendamento): void {
         erros.push(`O campo 'status' é obrigatório e deve ser um dos seguintes: ${STATUS_AGENDAMENTO_VALIDOS.join(", ")}.`);
     }
 
-    const cpfNormalizado = normalizarCpf(dados.cpf_paciente || "");
-    if (cpfNormalizado.length !== 11) {
+    // CPF é opcional: nem todo paciente possui CPF cadastrado no sistema.
+    // Se informado, deve ter 11 dígitos; se undefined/vazio, é permitido.
+    const cpfNormalizado = normalizarCpf(dados.cpf_paciente);
+    if (cpfNormalizado && cpfNormalizado.length !== 11) {
         erros.push("O campo 'cpf_paciente' deve conter um CPF válido com 11 dígitos.");
     }
 

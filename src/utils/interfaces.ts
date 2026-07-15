@@ -32,7 +32,7 @@ export interface Agendamento {
     data_hora_inicio: string;
     data_hora_fim: string;
     id_medico: string;
-    cpf_paciente: string;
+    cpf_paciente?: string;
     id_tipo_procedimento: string;
     status: StatusAgendamento;
     guia_assinada: boolean;

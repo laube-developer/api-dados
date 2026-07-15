@@ -1,4 +1,4 @@
-import "dotenv/config"
+import "dotenv/config";
 import express from 'express';
 import { buscarTabelasBanco } from './database/notion';
 import { buscarPaciente } from './database/pacientes/buscarPaciente';
@@ -389,8 +389,10 @@ app.use((error: unknown, req: express.Request, res: express.Response, next: expr
     return responderErro(res, mensagem);
 });
 
-app.listen(process.env.PORT, () => {
-    console.log(`Servidor rodando na porta ${process.env.PORT}`);
+const port = Number(process.env.PORT) || 3000;
+
+app.listen(port, () => {
+    console.log(`Servidor rodando na porta ${port}`);
 });
 
 //Alteração

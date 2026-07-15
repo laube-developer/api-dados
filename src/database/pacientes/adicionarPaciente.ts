@@ -9,10 +9,14 @@ export class ErroValidacao extends Error {
 }
 
 function normalizarCpf(cpf: string | null | undefined): string {
-    if (cpf == null || cpf === "") {
+    if (cpf == null) {
         return "";
     }
-    return String(cpf).replace(/\D/g, "");
+    const texto = String(cpf).trim();
+    if (!texto) {
+        return "";
+    }
+    return texto.replace(/\D/g, "");
 }
 
 function validarDadosPaciente(dados: interfaces.Paciente): void {
