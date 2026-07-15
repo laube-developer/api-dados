@@ -8,8 +8,11 @@ export class ErroValidacao extends Error {
     }
 }
 
-function normalizarCpf(cpf: string): string {
-    return cpf.replace(/\D/g, "");
+function normalizarCpf(cpf: string | null | undefined): string {
+    if (cpf == null || cpf === "") {
+        return "";
+    }
+    return String(cpf).replace(/\D/g, "");
 }
 
 function validarDadosPaciente(dados: interfaces.Paciente): void {
@@ -23,8 +26,10 @@ function validarDadosPaciente(dados: interfaces.Paciente): void {
         erros.push("O campo 'id_unico' é obrigatório.");
     }
 
-    const cpfNormalizado = normalizarCpf(dados.cpf || "");
-    if (cpfNormalizado.length !== 11) {
+    const cpfNormalizado = normalizarCpf(dados.cpf);
+    // CPF é opcional: nem todo paciente possui CPF cadastrado no sistema.
+    // Se informado, deve ter 11 dígitos; se undefined/vazio, é permitido.
+    if (cpfNormalizado && cpfNormalizado.length !== 11) {
         erros.push("O campo 'cpf' deve conter um CPF válido com 11 dígitos.");
     }
 
