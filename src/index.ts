@@ -9,6 +9,14 @@ import {
     ErroValidacao as ErroValidacaoAtualizacaoPacientes,
     ErroNaoEncontrado as ErroNaoEncontradoPacientes
 } from './database/pacientes/atualizarPacientes';
+import {
+    patientsExists,
+    ErroValidacao as ErroValidacaoPatientsExists
+} from './database/pacientes/patientsExists';
+import {
+    doctorsExists,
+    ErroValidacao as ErroValidacaoDoctorsExists
+} from './database/medicos/doctorsExists';
 import { buscarAgendamento, ErroValidacao as ErroValidacaoBusca } from './database/agendamentos/buscarAgendamento';
 import { buscarAgendamentos, ErroValidacao as ErroValidacaoBuscaAgendamentos } from './database/agendamentos/buscarAgendamentos';
 import {
@@ -90,6 +98,46 @@ app.get('/paciente', async (req: express.Request, res: express.Response) => {
     } catch (error) {
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar paciente";
         console.error(error);
+        return responderErro(res, mensagem);
+    }
+});
+
+/**
+ * Verifica quais id_unico de pacientes já estão cadastrados.
+ * Body: [12345, 12346] ou { "id_unicos": [12345, 12346] }
+ * Resposta: lista dos id_unico encontrados na base.
+ */
+app.post('/patients_exists', async (req: express.Request, res: express.Response) => {
+    try {
+        const idsCadastrados = await patientsExists(req.body);
+        return responderSucesso(res, idsCadastrados);
+    } catch (error) {
+        console.error(error);
+        if (error instanceof ErroValidacaoPatientsExists) {
+            return responderErro(res, error.message, 400);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao verificar pacientes existentes";
+        return responderErro(res, mensagem);
+    }
+});
+
+/**
+ * Verifica quais id_unico de médicos já estão cadastrados.
+ * Body: [12345, 12346] ou { "id_unicos": [12345, 12346] }
+ * Resposta: lista dos id_unico encontrados na base.
+ */
+app.post('/doctors_exists', async (req: express.Request, res: express.Response) => {
+    try {
+        const idsCadastrados = await doctorsExists(req.body);
+        return responderSucesso(res, idsCadastrados);
+    } catch (error) {
+        console.error(error);
+        if (error instanceof ErroValidacaoDoctorsExists) {
+            return responderErro(res, error.message, 400);
+        }
+
+        const mensagem = error instanceof Error ? error.message : "Erro ao verificar médicos existentes";
         return responderErro(res, mensagem);
     }
 });
