@@ -133,7 +133,10 @@ function validarListaAgendamentos(agendamentos: unknown): interfaces.Atualizacao
             ...(item.cpf_paciente !== undefined ? { cpf_paciente: normalizarCpf(item.cpf_paciente) } : {}),
             ...(item.id_tipo_procedimento !== undefined ? { id_tipo_procedimento: item.id_tipo_procedimento.trim() } : {}),
             ...(item.status !== undefined ? { status: item.status } : {}),
-            ...(item.insurance_id !== undefined ? { insurance_id: item.insurance_id.trim() } : {})
+            ...(item.insurance_id !== undefined ? { insurance_id: item.insurance_id.trim() } : {}),
+            ...(typeof item.guia_assinada === "boolean"
+                ? { guia_assinada: item.guia_assinada }
+                : {}),
         };
     });
 
@@ -236,6 +239,12 @@ export async function atualizarAgendamentos(agendamentos: unknown): Promise<inte
         if (agendamento.insurance_id !== undefined) {
             properties.insurance_id = {
                 rich_text: [{ text: { content: agendamento.insurance_id } }]
+            };
+        }
+
+        if (typeof agendamento.guia_assinada === "boolean") {
+            properties.guia_assinada = {
+                checkbox: agendamento.guia_assinada,
             };
         }
 
