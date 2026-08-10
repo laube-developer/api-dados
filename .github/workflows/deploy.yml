@@ -1,35 +1,28 @@
-name: Deploy to DigitalOcean
-
+name: Deploy em Produção
 on:
   push:
     branches:
-      [ main ]
+      - main
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-
+    runs-on: self-hosted
     steps:
-      - name: Deploy to Droplet
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DO_HOST }}
-          username: root
-          key: ${{ secrets.DO_SSH_KEY }}
-          script: |
-            set -e
+      - name: Checkout do repositório
+        uses: actions/checkout@v3
 
-            echo "=== Iniciando deploy ==="
-            cd /root/api-dados
-            git pull origin main
+      - name: Sincronizar arquivos com a pasta do projeto
+        run: |
+          rsync -avz --exclude '.git' --exclude 'node_modules' ./ /home/totem-software/api-dados
 
-            echo "=== Instalando dependências ==="
-            npm install
-
-            echo "=== Fazendo build ==="
-            npm run build:clean
-
-            echo "=== Reiniciando aplicação com PM2 ==="
-            pm2 reload api-dados --update-env || pm2 start dist/index.js --name api-dados
-            
-            echo "Deploy finalizado com sucesso!"
+      - name: Build
+        run: |
+          cd /home/totem-software/api-dados
+          npm install
+          npm run build
+      
+      - name: Deploy
+        run: |
+          cd /home/totem-software/api-dados
+          pm2 restart superapp --update-env
+      
