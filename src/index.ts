@@ -91,7 +91,7 @@ app.get('/paciente', async (req: express.Request, res: express.Response) => {
         const pacientes = await buscarPaciente(cpfOrName);
 
         if (!pacientes || pacientes.length === 0) {
-            return responderErro(res, "Paciente não encontrado  aa", 404);
+            return responderErro(res, "Paciente não encontrado", 404);
         }
 
         return responderSucesso(res, pacientes);
