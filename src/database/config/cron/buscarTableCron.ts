@@ -1,3 +1,7 @@
+
+import type * as interfaces from "../../../utils/interfaces.js";
+import { buscarTabelasBanco, chamarNotionAPI } from "../../notion.js";
+
 function relationIds(prop: any): string[] {
   if (prop?.type !== "relation" || !Array.isArray(prop.relation)) return [];
   return prop.relation.map((r: { id: string }) => r.id);
