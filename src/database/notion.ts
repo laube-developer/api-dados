@@ -2,7 +2,12 @@ const NOTION_API_TOKEN = process.env.NOTION_API_TOKEN || "";
 const NOTION_DATABASE_PAGE_ID = process.env.NOTION_DATABASE_PAGE_ID || "";
 
 // Função auxiliar para fazer chamadas HTTP seguras para o Notion
-export async function chamarNotionAPI(endpoint: string, método: string = "GET", corpo?: any) {
+export async function chamarNotionAPI(
+    endpoint: string,
+    método: string = "GET",
+    corpo?: any,
+    opcoes?: { permitir404?: boolean }
+) {
     const url = `${process.env.NOTION_API_URL}/${endpoint}`;
     
     console.log("Fetch: chamarNotionAPI -> " + url);
@@ -18,6 +23,9 @@ export async function chamarNotionAPI(endpoint: string, método: string = "GET",
     });
 
     if (!resposta.ok) {
+        if (resposta.status === 404 && opcoes?.permitir404) {
+            return null;
+        }
         const erroTexto = await resposta.text();
         throw new Error(`Falha na API do Notion [${resposta.status}]: ${erroTexto}`);
     }

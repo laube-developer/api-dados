@@ -85,3 +85,10 @@ export interface CronTable{
     cron_rule: string;
     integracao: string;
 }
+
+/** Página da tabela `clinicas` no Notion. `id` = id da page. */
+export interface Clinica {
+    id: string;
+    nome: string;
+    base_de_dados_id: string;
+}
