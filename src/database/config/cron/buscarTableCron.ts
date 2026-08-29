@@ -27,7 +27,7 @@ function texto(prop: any): string {
   return "";
 }
 
-const INTEGRACOES_CLINICAS_ID = "COLE_O_ID_DA_DATABASE_INTEGRACOES_CLINICAS";
+const INTEGRACOES_CLINICAS_ID = "84d46144-5769-835b-9665-877247762c91";
 
 export async function buscarTableCron(): Promise<interfaces.CronTable[]> {
   const tabelas = await chamarNotionAPI(
