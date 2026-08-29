@@ -77,3 +77,11 @@ export interface RespostaErro {
 }
 
 export type RespostaApi<T> = RespostaSucesso<T> | RespostaErro;
+
+export interface CronTable{
+    name: string;
+    clinica: string;
+    metadata: string;
+    cron_rule: string;
+    integracao: string;
+}

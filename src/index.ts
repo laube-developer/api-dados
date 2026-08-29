@@ -56,6 +56,7 @@ import {
 import { buscarAgendas } from './database/agendas/buscarAgendas';
 import { responderErro, responderSucesso } from './utils/respostas';
 import { bearerAuth } from './middlewares/auth';
+import { buscarTableCron } from "./database/config/cron/buscarTableCron";
 
 
 const app = express();
@@ -424,6 +425,18 @@ app.post('/reverterSincronizacao', async (req: express.Request, res: express.Res
         }
 
         const mensagem = error instanceof Error ? error.message : "Erro ao reverter sincronização";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.get('/buscarTableCron', async (req: express.Request, res: express.Response) => {
+    try {
+        const cronTables = await buscarTableCron();
+
+        return responderSucesso(res, cronTables);
+    } catch (error) {
+        console.error(error);
+        const mensagem = error instanceof Error ? error.message : "Erro ao buscar cron tables";
         return responderErro(res, mensagem);
     }
 });
