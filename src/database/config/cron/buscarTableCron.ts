@@ -1,6 +1,7 @@
 
 import type * as interfaces from "../../../utils/interfaces.js";
 import { chamarNotionAPI } from "../../notion.js";
+import { mapearClinica } from "../clinicas/buscarClinica.js";
 
 function relationIds(prop: any): string[] {
   if (prop?.type !== "relation" || !Array.isArray(prop.relation)) return [];
@@ -38,16 +39,27 @@ export async function buscarTableCron(): Promise<interfaces.CronTable[]> {
   const cronTables = await Promise.all(
     (tabelas.results || []).map(async (page: any) => {
       const props = page.properties;
-      const clinicaId = relationIds(props.clinica)[0];
-      const integracaoId = relationIds(props.integracao)[0];
+      const clinicaId = relationIds(props.clinica)[0] ?? "";
+      const integracaoId = relationIds(props.integracao)[0] ?? "";
 
       let chave_segura = "";
-      let integracao = "";
-      let clinica = "";
+      let integracaoNome = "";
+      const clinica: interfaces.CronClinica = {
+        id: clinicaId,
+        name: "",
+        base_de_dados_id: "",
+      };
 
       if (clinicaId) {
-        const clinicaPage = await chamarNotionAPI(`pages/${clinicaId}`, "GET");
-        clinica = titleOf(clinicaPage);
+        const clinicaPage = await chamarNotionAPI(`pages/${clinicaId}`, "GET", undefined, {
+          permitir404: true,
+        });
+        if (clinicaPage) {
+          const mapped = mapearClinica(clinicaPage);
+          clinica.id = mapped.id || clinicaId;
+          clinica.name = mapped.nome;
+          clinica.base_de_dados_id = mapped.base_de_dados_id;
+        }
       }
 
       if (clinicaId && integracaoId) {
@@ -68,24 +80,28 @@ export async function buscarTableCron(): Promise<interfaces.CronTable[]> {
         if (row) {
           chave_segura = texto(row.properties?.chave_segura);
 
-          const integRelId = relationIds(row.properties?.integracao)[0];
+          const integRelId = relationIds(row.properties?.integracao)[0] ?? integracaoId;
           if (integRelId) {
-            const integPage = await chamarNotionAPI(`pages/${integRelId}`, "GET");
-            integracao = titleOf(integPage);
+            const integPage = await chamarNotionAPI(`pages/${integRelId}`, "GET", undefined, {
+              permitir404: true,
+            });
+            if (integPage) {
+              integracaoNome = titleOf(integPage);
+            }
           }
         }
       }
 
-      return {
+      const item: interfaces.CronTable = {
         name: props.name?.title?.[0]?.plain_text ?? "",
         clinica,
-        clinicaIds: clinicaId ? [clinicaId] : [],
         metadata: texto(props.metadata),
         cron_rule: texto(props.cron_rule),
-        integracao,
+        integracao: { name: integracaoNome },
         chave_segura,
-        integracaoIds: integracaoId ? [integracaoId] : [],
       };
+
+      return item;
     })
   );
 

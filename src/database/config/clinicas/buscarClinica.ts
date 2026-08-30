@@ -73,7 +73,7 @@ function valorTextoOuRelacao(prop: any): string {
     return texto(prop).trim();
 }
 
-function mapearClinica(page: any): interfaces.Clinica {
+export function mapearClinica(page: any): interfaces.Clinica {
     const props = page?.properties ?? {};
     const baseProp = propPorNome(props, [
         "base_de_dados_id",
