@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from 'express';
-import { buscarTabelasBanco } from './database/notion';
+import { buscarTabelasBanco, runWithBaseDeDadosId } from './database/notion';
 import { buscarPaciente } from './database/pacientes/buscarPaciente';
 import { buscarPacientes } from './database/pacientes/buscarPacientes';
 import { adicionarPaciente, ErroValidacao as ErroValidacaoPaciente } from './database/pacientes/adicionarPaciente';
@@ -61,12 +61,21 @@ import {
     buscarClinicaPorId,
     ErroValidacaoClinica,
 } from "./database/config/clinicas/buscarClinica";
+import { buscarIntegracaoClinica } from "./database/config/clinicas/buscarIntegracaoClinica";
 
 
 const app = express();
 
 app.use(express.json());
 app.use(bearerAuth);
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const baseId = String(req.headers["x-base-de-dados-id"] ?? "").trim();
+    if (!baseId) {
+        next();
+        return;
+    }
+    runWithBaseDeDadosId(baseId, () => next());
+});
 
 app.get('/tabelas', async (req: express.Request, res: express.Response) => {
     try {
@@ -461,6 +470,26 @@ app.get('/clinica', async (req: express.Request, res: express.Response) => {
             return responderErro(res, error.message, 400);
         }
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar clínica";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.get('/integracaoClinica', async (req: express.Request, res: express.Response) => {
+    try {
+        const clinicaId = String(req.query.clinicaId ?? "").trim();
+        const dados = await buscarIntegracaoClinica(clinicaId);
+
+        if (!dados || !dados.chave_segura) {
+            return responderErro(res, "Integração da clínica não encontrada", 404);
+        }
+
+        return responderSucesso(res, dados);
+    } catch (error) {
+        console.error(error);
+        if (error instanceof ErroValidacaoClinica) {
+            return responderErro(res, error.message, 400);
+        }
+        const mensagem = error instanceof Error ? error.message : "Erro ao buscar integração da clínica";
         return responderErro(res, mensagem);
     }
 });
