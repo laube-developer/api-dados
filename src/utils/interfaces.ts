@@ -78,12 +78,23 @@ export interface RespostaErro {
 
 export type RespostaApi<T> = RespostaSucesso<T> | RespostaErro;
 
-export interface CronTable{
+export interface CronClinica {
+    id: string;
     name: string;
-    clinica: string;
+    base_de_dados_id: string;
+}
+
+export interface CronIntegracao {
+    name: string;
+}
+
+export interface CronTable {
+    name: string;
+    clinica: CronClinica;
     metadata: string;
     cron_rule: string;
-    integracao: string;
+    integracao: CronIntegracao;
+    chave_segura: string;
 }
 
 /** Página da tabela `clinicas` no Notion. `id` = id da page. */
