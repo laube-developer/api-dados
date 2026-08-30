@@ -1,5 +1,13 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 const NOTION_API_TOKEN = process.env.NOTION_API_TOKEN || "";
 const NOTION_DATABASE_PAGE_ID = process.env.NOTION_DATABASE_PAGE_ID || "";
+
+const baseDeDadosStore = new AsyncLocalStorage<{ pageId: string }>();
+
+export function runWithBaseDeDadosId<T>(pageId: string, fn: () => T): T {
+    return baseDeDadosStore.run({ pageId }, fn);
+}
 
 // Função auxiliar para fazer chamadas HTTP seguras para o Notion
 export async function chamarNotionAPI(
@@ -33,17 +41,27 @@ export async function chamarNotionAPI(
     return resposta.json();
 }
 
-let cacheTabelasBanco: { expiraEm: number; tabelas: { id: string; nome: string }[] } | null = null;
+const cacheTabelasPorPagina = new Map<
+    string,
+    { expiraEm: number; tabelas: { id: string; nome: string }[] }
+>();
 const TTL_CACHE_TABELAS_MS = 5 * 60 * 1000;
 
 export async function buscarTabelasBanco() {
     const agora = Date.now();
+    const pageId =
+        baseDeDadosStore.getStore()?.pageId || NOTION_DATABASE_PAGE_ID;
 
-    if (cacheTabelasBanco && agora < cacheTabelasBanco.expiraEm) {
-        return cacheTabelasBanco.tabelas;
+    if (!pageId) {
+        throw new Error("NOTION_DATABASE_PAGE_ID não configurado.");
     }
 
-    const dados = await chamarNotionAPI(`blocks/${NOTION_DATABASE_PAGE_ID}/children`);
+    const cache = cacheTabelasPorPagina.get(pageId);
+    if (cache && agora < cache.expiraEm) {
+        return cache.tabelas;
+    }
+
+    const dados = await chamarNotionAPI(`blocks/${pageId}/children`);
 
     const tabelas = (dados.results || [])
         .filter((block: any) => block.type === "child_database")
@@ -52,10 +70,10 @@ export async function buscarTabelasBanco() {
             nome: block.child_database?.title?.toLowerCase().trim() || ""
         }));
 
-    cacheTabelasBanco = {
+    cacheTabelasPorPagina.set(pageId, {
         expiraEm: agora + TTL_CACHE_TABELAS_MS,
         tabelas,
-    };
+    });
 
     return tabelas;
 }
