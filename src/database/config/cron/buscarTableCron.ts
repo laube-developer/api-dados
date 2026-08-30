@@ -25,6 +25,9 @@ function texto(prop: any): string {
   if (prop.type === "title") {
     return (prop.title ?? []).map((t: any) => t.plain_text ?? "").join("");
   }
+  if (prop.type === "url") {
+    return String(prop.url ?? "").trim();
+  }
   return "";
 }
 
@@ -43,6 +46,7 @@ export async function buscarTableCron(): Promise<interfaces.CronTable[]> {
       const integracaoId = relationIds(props.integracao)[0] ?? "";
 
       let chave_segura = "";
+      let botconversa_msg_url = "";
       let integracaoNome = "";
       const clinica: interfaces.CronClinica = {
         id: clinicaId,
@@ -79,6 +83,7 @@ export async function buscarTableCron(): Promise<interfaces.CronTable[]> {
         const row = join.results?.[0];
         if (row) {
           chave_segura = texto(row.properties?.chave_segura);
+          botconversa_msg_url = texto(row.properties?.botconversa_msg_url);
 
           const integRelId = relationIds(row.properties?.integracao)[0] ?? integracaoId;
           if (integRelId) {
@@ -99,6 +104,7 @@ export async function buscarTableCron(): Promise<interfaces.CronTable[]> {
         cron_rule: texto(props.cron_rule),
         integracao: { name: integracaoNome },
         chave_segura,
+        botconversa_msg_url,
       };
 
       return item;
