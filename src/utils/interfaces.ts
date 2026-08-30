@@ -95,6 +95,7 @@ export interface CronTable {
     cron_rule: string;
     integracao: CronIntegracao;
     chave_segura: string;
+    botconversa_msg_url: string;
 }
 
 /** Página da tabela `clinicas` no Notion. `id` = id da page. */
