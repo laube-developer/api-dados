@@ -105,3 +105,36 @@ export async function buscarClinicaPorId(id: string): Promise<interfaces.Clinica
 
     return mapearClinica(page);
 }
+
+const CRON_DATABASE_ID = "3ca46144576980ae9ec4e4d6451e04ef";
+let cacheIdTabelaClinicas: string | null = null;
+
+async function idTabelaClinicas(): Promise<string> {
+    if (cacheIdTabelaClinicas) {
+        return cacheIdTabelaClinicas;
+    }
+    const cronDb = await chamarNotionAPI(`databases/${CRON_DATABASE_ID}`, "GET");
+    const related = cronDb?.properties?.clinica?.relation?.database_id;
+    if (!related) {
+        throw new Error("Não foi possível resolver a tabela de clínicas.");
+    }
+    cacheIdTabelaClinicas = String(related);
+    return cacheIdTabelaClinicas;
+}
+
+export async function listarClinicas(): Promise<interfaces.Clinica[]> {
+    const dbId = await idTabelaClinicas();
+    const resultado = await chamarNotionAPI(`databases/${dbId}/query`, "POST", {
+        page_size: 100,
+    });
+    const paginas = Array.isArray(resultado?.results) ? resultado.results : [];
+    const clinicas: interfaces.Clinica[] = [];
+    for (const page of paginas) {
+        if (page?.archived) continue;
+        const mapped = mapearClinica(page);
+        if (mapped.id) {
+            clinicas.push(mapped);
+        }
+    }
+    return clinicas;
+}

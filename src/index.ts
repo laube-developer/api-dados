@@ -60,6 +60,7 @@ import { buscarTableCron } from "./database/config/cron/buscarTableCron";
 import {
     buscarClinicaPorId,
     ErroValidacaoClinica,
+    listarClinicas,
 } from "./database/config/clinicas/buscarClinica";
 import { buscarIntegracaoClinica } from "./database/config/clinicas/buscarIntegracaoClinica";
 
@@ -450,6 +451,17 @@ app.get('/buscarTableCron', async (req: express.Request, res: express.Response) 
     } catch (error) {
         console.error(error);
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar cron tables";
+        return responderErro(res, mensagem);
+    }
+});
+
+app.get('/clinicas', async (_req: express.Request, res: express.Response) => {
+    try {
+        const clinicas = await listarClinicas();
+        return responderSucesso(res, clinicas);
+    } catch (error) {
+        console.error(error);
+        const mensagem = error instanceof Error ? error.message : "Erro ao listar clínicas";
         return responderErro(res, mensagem);
     }
 });
