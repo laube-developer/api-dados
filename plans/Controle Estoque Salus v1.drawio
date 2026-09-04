@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Página-1" id="dNSu9-vXwyoT7i1-L4Cs">
-    <mxGraphModel dx="1288" dy="783" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="2044" dy="1003" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -307,7 +307,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="knODt8NGLvh1PkgfUIgF-15" parent="1" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;" value="&lt;span style=&quot;font-weight: 700;&quot;&gt;materiais&lt;/span&gt;" vertex="1">
+        <mxCell id="knODt8NGLvh1PkgfUIgF-15" parent="1" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;rounded=1;" value="&lt;span style=&quot;font-weight: 700;&quot;&gt;estoque&lt;/span&gt;" vertex="1">
           <mxGeometry height="104" width="140" x="290" y="50" as="geometry" />
         </mxCell>
         <mxCell id="knODt8NGLvh1PkgfUIgF-16" parent="knODt8NGLvh1PkgfUIgF-15" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="nome: text" vertex="1">
