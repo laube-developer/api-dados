@@ -2,6 +2,8 @@
 
 API Gateway em Node.js + Express que lê, filtra, adiciona e altera dados em tabelas do Notion.
 
+**Contrato HTTP canônico:** [`docs/api.md`](docs/api.md) (rotas clínicas `/*` e `/salus/estoque/*`).
+
 ## Execução
 
 ```bash
@@ -14,7 +16,10 @@ Variáveis de ambiente necessárias (arquivo `.env.local`):
 |---|---|
 | `PORT` | Porta do servidor |
 | `NOTION_API_TOKEN` | Token de integração do Notion |
-| `NOTION_DATABASE_PAGE_ID` | ID da página mãe "Base de dados" |
+| `NOTION_DATABASE_PAGE_ID` | ID da página mãe "Base de dados" (rotas clínicas `/*`) |
+| `NOTION_SALUS_DATABASE_PAGE_ID` | ID da página mãe do estoque Salus (`/salus/estoque/*`) |
+| `AUTH_TOKEN` | Token Bearer |
+| `NOTION_API_URL` | URL base da API Notion |
 
 ---
 
@@ -52,7 +57,15 @@ Todas as rotas seguem o mesmo envelope JSON.
 
 ---
 
+## Testes
+
+```bash
+npm test
+```
+
 ## Rotas
+
+Contrato completo em [`docs/api.md`](docs/api.md). Resumo das rotas clínicas abaixo; estoque Salus só está documentado lá.
 
 ### `GET /tabelas`
 
