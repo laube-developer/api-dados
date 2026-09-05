@@ -1,5 +1,6 @@
 import type { Router } from "express";
 import { ErroValidacao } from "../../../database/salus/estoque/erros";
+import type { RegistroEstoque } from "../../../database/salus/estoque/mapear";
 import { servicosEstoque } from "../../../database/salus/estoque/servicos";
 import { responderSucesso } from "../../../utils/respostas";
 import { tratar } from "./errosHttp";
@@ -45,7 +46,7 @@ export function registrarCompras(router: Router) {
             executar: async () => {
                 const compra = await servicosEstoque.adicionar("compras", dados);
                 criados.push({ tabela: "compras", id: String(compra.id) });
-                const itensCriados = [];
+                const itensCriados: RegistroEstoque[] = [];
                 for (const item of itensValidos) {
                     const linha = await servicosEstoque.adicionar("itens_compra", {
                         ...item,

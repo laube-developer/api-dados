@@ -1,5 +1,6 @@
 import type { Router } from "express";
 import { ErroValidacao } from "../../../database/salus/estoque/erros";
+import type { RegistroEstoque } from "../../../database/salus/estoque/mapear";
 import { servicosEstoque } from "../../../database/salus/estoque/servicos";
 import { responderSucesso } from "../../../utils/respostas";
 import { tratar } from "./errosHttp";
@@ -78,8 +79,8 @@ export function registrarRegistros(router: Router) {
             executar: async () => {
                 const registro = await servicosEstoque.adicionar("registros", dados);
                 criados.push({ tabela: "registros", id: String(registro.id) });
-                const kitsCriados = [];
-                const materiaisCriados = [];
+                const kitsCriados: RegistroEstoque[] = [];
+                const materiaisCriados: RegistroEstoque[] = [];
                 for (const kit of kitsValidos) {
                     const linha = await servicosEstoque.adicionar("kits_registro", { ...kit, registro: registro.id });
                     criados.push({ tabela: "kits_registro", id: String(linha.id) });

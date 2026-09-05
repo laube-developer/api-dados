@@ -193,7 +193,7 @@ export function validarCorpo(
             }
             const presente = campo.nome in dados;
             if (campo.obrigatorioNoPost || presente) {
-                const erro = validarCampo(campo, dados[campo.nome], presente || campo.obrigatorioNoPost);
+                const erro = validarCampo(campo, dados[campo.nome], presente || Boolean(campo.obrigatorioNoPost));
                 if (erro) erros.push(erro);
             }
         }
