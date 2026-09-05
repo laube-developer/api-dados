@@ -66,9 +66,16 @@ export type AtualizacaoPaciente = Partial<Paciente> & { cpf: string };
 /** Atualização parcial; `guia_assinada` pode ser alterada pela recepção. */
 export type AtualizacaoAgendamento = Partial<Agendamento> & { id_unico: string };
 
+export interface PaginacaoLista {
+    page: number;
+    limit: number;
+    has_more: boolean;
+}
+
 export interface RespostaSucesso<T> {
     sucesso: true;
     dados: T;
+    paginacao?: PaginacaoLista;
 }
 
 export interface RespostaErro {
@@ -103,4 +110,60 @@ export interface Clinica {
     id: string;
     nome: string;
     base_de_dados_id: string;
+}
+
+export interface SalusEstoqueTipoProcedimento { id: string; nome: string; }
+export interface SalusEstoqueMaterial { id: string; nome: string; codigo: string; }
+export interface SalusEstoqueFornecedor {
+    id: string;
+    nome: string;
+    contato: string;
+    whatsapp: string;
+    email: string;
+    obs: string;
+    ativo: boolean;
+}
+export interface SalusEstoqueCompra { id: string; data_hora: string; obs: string; }
+export interface SalusEstoqueItemCompra {
+    id: string;
+    compra: string;
+    material: string;
+    fornecedor: string;
+    quantidade: number;
+}
+export interface SalusEstoqueKit { id: string; nome: string; tipo_procedimento: string; }
+export interface SalusEstoqueKitMaterial {
+    id: string;
+    kit: string;
+    material: string;
+    quantidade: number;
+}
+export interface SalusEstoqueMedico { id: string; nome: string; especialidade: string; }
+export interface SalusEstoquePaciente { id: string; nome: string; contato: string; }
+export interface SalusEstoqueRegistro {
+    id: string;
+    data_hora: string;
+    tipo_procedimento: string;
+    paciente: string;
+    medico: string;
+    quantidade: number;
+    obs: string;
+}
+export interface SalusEstoqueKitRegistro {
+    id: string;
+    registro: string;
+    kit: string;
+    quantidade: number;
+}
+export interface SalusEstoqueMaterialRegistro {
+    id: string;
+    registro: string;
+    material: string;
+    quantidade: number;
+}
+export interface SalusEstoqueSaldo {
+    id: string;
+    material: string;
+    quantidade: number;
+    nome: string;
 }
