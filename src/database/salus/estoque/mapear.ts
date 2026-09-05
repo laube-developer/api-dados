@@ -11,6 +11,8 @@ export function lerCampo(prop: any, tipo: TipoCampo): unknown {
             return prop?.rich_text?.[0]?.text?.content ?? "";
         case "email":
             return prop?.email ?? "";
+        case "phone_number":
+            return prop?.phone_number ?? "";
         case "number":
             return typeof prop?.number === "number" ? prop.number : 0;
         case "checkbox":
@@ -33,6 +35,10 @@ export function escreverCampo(tipo: TipoCampo, valor: unknown): Record<string, u
         case "email": {
             const email = String(valor ?? "").trim();
             return { email: email || null };
+        }
+        case "phone_number": {
+            const telefone = String(valor ?? "").trim();
+            return { phone_number: telefone || null };
         }
         case "number":
             return { number: valor as number };
@@ -129,6 +135,7 @@ function validarCampo(campo: CampoSchema, valor: unknown, presente: boolean): st
         case "title":
         case "rich_text":
         case "email":
+        case "phone_number":
             if (typeof valor !== "string") {
                 return `O campo '${campo.nome}' deve ser texto.`;
             }

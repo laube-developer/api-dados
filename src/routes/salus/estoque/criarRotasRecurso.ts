@@ -8,8 +8,11 @@ export function criarRotasRecurso(router: Router, recurso: RecursoSchema) {
     const base = `/${recurso.slug}`;
 
     router.get(base, tratar(async (req, res) => {
-        const dados = await servicosEstoque.listar(recurso.tabela, req.query as Record<string, unknown>);
-        return responderSucesso(res, dados);
+        const resultado = await servicosEstoque.listarPaginado(
+            recurso.tabela,
+            req.query as Record<string, unknown>
+        );
+        return responderSucesso(res, resultado.itens, 200, resultado.paginacao);
     }));
 
     router.get(`${base}/:id`, tratar(async (req, res) => {

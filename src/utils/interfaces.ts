@@ -66,9 +66,16 @@ export type AtualizacaoPaciente = Partial<Paciente> & { cpf: string };
 /** Atualização parcial; `guia_assinada` pode ser alterada pela recepção. */
 export type AtualizacaoAgendamento = Partial<Agendamento> & { id_unico: string };
 
+export interface PaginacaoLista {
+    page: number;
+    limit: number;
+    has_more: boolean;
+}
+
 export interface RespostaSucesso<T> {
     sucesso: true;
     dados: T;
+    paginacao?: PaginacaoLista;
 }
 
 export interface RespostaErro {

@@ -38,6 +38,9 @@ describe("rotas /salus/estoque", () => {
         seq = 0;
         Object.assign(servicosEstoque, originais);
         servicosEstoque.listar = async () => [{ id: "mat-1", nome: "Gaze", codigo: "GZ" }];
+        servicosEstoque.listarPaginado = async () => ({
+            itens: [{ id: "mat-1", nome: "Gaze", codigo: "GZ" }],
+        });
         servicosEstoque.buscarPorId = async (_tabela, id) => ({ id, nome: "Gaze", codigo: "GZ" });
         servicosEstoque.adicionar = async (tabela, dados) => {
             seq += 1;
@@ -95,6 +98,17 @@ describe("rotas /salus/estoque", () => {
         });
         assert.equal(patch.status, 200);
         assert.equal(patch.json.dados.codigo, "GZ-2");
+    });
+
+    test("GET lista com limit inclui paginacao no envelope", async () => {
+        servicosEstoque.listarPaginado = async () => ({
+            itens: [{ id: "mat-1", nome: "Gaze", codigo: "GZ" }],
+            paginacao: { page: 1, limit: 10, has_more: true },
+        });
+        const lista = await chamar(url, "GET", "/salus/estoque/materiais?limit=10&page=1");
+        assert.equal(lista.status, 200);
+        assert.deepEqual(lista.json.paginacao, { page: 1, limit: 10, has_more: true });
+        assert.equal(lista.json.dados.length, 1);
     });
 
     test("POST compras com itens chama incremento", async () => {

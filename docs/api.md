@@ -54,6 +54,8 @@ Não há `DELETE` público. Páginas Notion só são arquivadas internamente com
 | `NOTION_API_URL` | Base da API Notion |
 | `NOTION_DATABASE_PAGE_ID` | Página-mãe das rotas clínicas `/*` (fallback se o header de tenant não vier) |
 | `NOTION_SALUS_DATABASE_PAGE_ID` | Página-mãe das rotas `/salus/estoque/*` |
+| `NOTION_SALUS_MEDICOS_DATABASE_ID` | Database-id da tabela-fonte `medicos` (linked view na página Salus não é consultável pela API) |
+| `NOTION_SALUS_PACIENTES_DATABASE_ID` | Database-id da tabela-fonte `pacientes` |
 
 Rotas `/*` aceitam `x-base-de-dados-id` (tenant/clínica). Rotas `/salus/estoque/*` **ignoram** esse header e usam sempre `NOTION_SALUS_DATABASE_PAGE_ID`.
 
@@ -122,7 +124,7 @@ O slug final `/estoque` é a tabela de saldo; o prefixo `/salus/estoque` é o m�
 
 | Método | Caminho | Status |
 |---|---|---|
-| GET | `/salus/estoque/R` | 200 lista. Query: `id`, `codigo` (equals), `ativo` (equals), relations (equals), textos (contains). Paginação Notion interna. |
+| GET | `/salus/estoque/R` | 200 lista. Query: `id`, `codigo` (equals), `ativo` (equals), relations (`contains`; vários IDs separados por vírgula viram `OR`), textos (contains), `q` (contains em title/rich_text com `OR`), `data_hora_de` / `data_hora_ate` (intervalo no campo date), `limit` (1–100) e `page` (≥ 1). Sem `limit`, percorre todas as páginas Notion. Com `limit`, o envelope inclui `paginacao: { page, limit, has_more }`. |
 | GET | `/salus/estoque/R/:id` | 200 ou 404 |
 | POST | `/salus/estoque/R` | 201 |
 | PATCH | `/salus/estoque/R/:id` | 200 parcial. Sem DELETE. |
@@ -130,6 +132,8 @@ O slug final `/estoque` é a tabela de saldo; o prefixo `/salus/estoque` é o m�
 Validação POST: `nome` obrigatório só quando é Title de negócio; relations obrigatórias; `quantidade` inteiro ≥ 0; `data_hora` ISO 8601; `ativo` boolean (default `true` na criação).
 
 Campos por tabela: ver plano / interfaces `SalusEstoque*` em `src/utils/interfaces.ts`.
+
+`medicos` e `pacientes` **não** são descobertos nos filhos da página Salus (linked view / `Untitled` não é um `child_database` consultável). O CRUD usa o `database_id` da tabela-fonte (`NOTION_SALUS_MEDICOS_DATABASE_ID` / `NOTION_SALUS_PACIENTES_DATABASE_ID`). Pacientes expõe `telefone` (property Notion `phone_number`).
 
 ### Ativar / desativar
 

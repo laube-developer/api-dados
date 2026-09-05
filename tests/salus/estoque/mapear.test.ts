@@ -25,6 +25,13 @@ describe("mapear Notion ↔ JSON", () => {
         assert.equal(lerCampo({ relation: [] }, "relation"), "");
     });
 
+    test("phone_number lê e escreve o valor plano", () => {
+        assert.equal(lerCampo({ phone_number: "61993862137" }, "phone_number"), "61993862137");
+        assert.equal(lerCampo(undefined, "phone_number"), "");
+        assert.deepEqual(escreverCampo("phone_number", "6199"), { phone_number: "6199" });
+        assert.deepEqual(escreverCampo("phone_number", "  "), { phone_number: null });
+    });
+
     test("checkbox ativo", () => {
         assert.equal(lerCampo({ checkbox: true }, "checkbox"), true);
         assert.equal(lerCampo({ checkbox: false }, "checkbox"), false);

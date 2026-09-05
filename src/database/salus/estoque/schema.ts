@@ -5,7 +5,8 @@ export type TipoCampo =
     | "number"
     | "checkbox"
     | "date"
-    | "relation";
+    | "relation"
+    | "phone_number";
 
 export interface CampoSchema {
     nome: string;
@@ -22,6 +23,9 @@ export interface RecursoSchema {
     temAtivo: boolean;
     postEspecial?: boolean;
     patchEspecial?: boolean;
+    /** Se definido, o CRUD usa este database_id e não descobre a tabela na página. */
+    databaseId?: string;
+    databaseIdEnv?: string;
 }
 
 function campo(nome: string, tipo: TipoCampo, obrigatorioNoPost = false): CampoSchema {
@@ -112,6 +116,8 @@ export const RECURSOS: RecursoSchema[] = [
         nomeObrigatorio: true,
         titleDummy: false,
         temAtivo: false,
+        databaseId: "38a461445769809a9b05d0e6fc5e50dd",
+        databaseIdEnv: "NOTION_SALUS_MEDICOS_DATABASE_ID",
         campos: [campo("nome", "title", true), campo("especialidade", "rich_text")],
     },
     {
@@ -120,7 +126,9 @@ export const RECURSOS: RecursoSchema[] = [
         nomeObrigatorio: true,
         titleDummy: false,
         temAtivo: false,
-        campos: [campo("nome", "title", true), campo("contato", "rich_text")],
+        databaseId: "38a46144576980fea4b6d19fd96bff8d",
+        databaseIdEnv: "NOTION_SALUS_PACIENTES_DATABASE_ID",
+        campos: [campo("nome", "title", true), campo("telefone", "phone_number")],
     },
     {
         tabela: "registros",
