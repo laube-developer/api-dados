@@ -27,14 +27,27 @@ describe("listar estoque", () => {
         Object.assign(dependenciasEstoque, originais);
     });
 
-    test("montarFiltroLista: q em pacientes inclui telefone", () => {
+    test("montarFiltroLista: q em pacientes inclui telefone, cpf e id_unico", () => {
         const filtro = montarFiltroLista(recursoPorTabela("pacientes"), { q: "6199" });
         assert.deepEqual(filtro, {
             or: [
                 { property: "nome", title: { contains: "6199" } },
+                { property: "cpf", rich_text: { contains: "6199" } },
+                { property: "id_unico", rich_text: { contains: "6199" } },
                 { property: "telefone", phone_number: { contains: "6199" } },
             ],
         });
+    });
+
+    test("montarFiltroLista: cpf e id_unico usam equals", () => {
+        assert.deepEqual(
+            montarFiltroLista(recursoPorTabela("pacientes"), { cpf: "12345678901" }),
+            { property: "cpf", rich_text: { equals: "12345678901" } }
+        );
+        assert.deepEqual(
+            montarFiltroLista(recursoPorTabela("pacientes"), { id_unico: "abc" }),
+            { property: "id_unico", rich_text: { equals: "abc" } }
+        );
     });
 
     test("montarFiltroLista: q faz OR em title e rich_text", () => {
