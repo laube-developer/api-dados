@@ -124,7 +124,7 @@ O slug final `/estoque` é a tabela de saldo; o prefixo `/salus/estoque` é o m�
 
 | Método | Caminho | Status |
 |---|---|---|
-| GET | `/salus/estoque/R` | 200 lista. Query: `id`, `codigo` (equals), `ativo` (equals), relations (`contains`; vários IDs separados por vírgula viram `OR`), textos (contains), `q` (contains em title/rich_text com `OR`), `data_hora_de` / `data_hora_ate` (intervalo no campo date), `limit` (1–100) e `page` (≥ 1). Sem `limit`, percorre todas as páginas Notion. Com `limit`, o envelope inclui `paginacao: { page, limit, has_more }`. |
+| GET | `/salus/estoque/R` | 200 lista. Query: `id`, `codigo` / `cpf` / `id_unico` (equals), `ativo` (equals), relations (`contains`; vários IDs separados por vírgula viram `OR`), textos (contains), `q` (contains em title/rich_text com `OR`), `data_hora_de` / `data_hora_ate` (intervalo no campo date), `limit` (1–100) e `page` (≥ 1). Sem `limit`, percorre todas as páginas Notion. Com `limit`, o envelope inclui `paginacao: { page, limit, has_more }`. |
 | GET | `/salus/estoque/R/:id` | 200 ou 404 |
 | POST | `/salus/estoque/R` | 201 |
 | PATCH | `/salus/estoque/R/:id` | 200 parcial. Sem DELETE. |
@@ -133,7 +133,7 @@ Validação POST: `nome` obrigatório só quando é Title de negócio; relations
 
 Campos por tabela: ver plano / interfaces `SalusEstoque*` em `src/utils/interfaces.ts`.
 
-`medicos` e `pacientes` **não** são descobertos nos filhos da página Salus (linked view / `Untitled` não é um `child_database` consultável). O CRUD usa o `database_id` da tabela-fonte (`NOTION_SALUS_MEDICOS_DATABASE_ID` / `NOTION_SALUS_PACIENTES_DATABASE_ID`). Pacientes expõe `telefone` (property Notion `phone_number`).
+`medicos` e `pacientes` **não** são descobertos nos filhos da página Salus (linked view / `Untitled` não é um `child_database` consultável). O CRUD usa o `database_id` da tabela-fonte (`NOTION_SALUS_MEDICOS_DATABASE_ID` / `NOTION_SALUS_PACIENTES_DATABASE_ID`). Pacientes expõe `nome`, `cpf`, `id_unico` e `telefone` (property Notion `phone_number`). Query `?cpf=` e `?id_unico=` usam `equals`.
 
 ### Ativar / desativar
 

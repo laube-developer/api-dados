@@ -139,7 +139,13 @@ export interface SalusEstoqueKitMaterial {
     quantidade: number;
 }
 export interface SalusEstoqueMedico { id: string; nome: string; especialidade: string; }
-export interface SalusEstoquePaciente { id: string; nome: string; contato: string; }
+export interface SalusEstoquePaciente {
+    id: string;
+    nome: string;
+    cpf: string;
+    id_unico: string;
+    telefone: string;
+}
 export interface SalusEstoqueRegistro {
     id: string;
     data_hora: string;

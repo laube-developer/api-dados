@@ -128,7 +128,12 @@ export const RECURSOS: RecursoSchema[] = [
         temAtivo: false,
         databaseId: "38a46144576980fea4b6d19fd96bff8d",
         databaseIdEnv: "NOTION_SALUS_PACIENTES_DATABASE_ID",
-        campos: [campo("nome", "title", true), campo("telefone", "phone_number")],
+        campos: [
+            campo("nome", "title", true),
+            campo("cpf", "rich_text"),
+            campo("id_unico", "rich_text"),
+            campo("telefone", "phone_number"),
+        ],
     },
     {
         tabela: "registros",

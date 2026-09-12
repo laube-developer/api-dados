@@ -335,7 +335,7 @@ Namespace do app de estoque da clínica Salus. Sempre usa `NOTION_SALUS_DATABASE
 | `/salus/estoque/kits` | `kits` | `id`, `nome`, `tipo_procedimento` |
 | `/salus/estoque/kits-materiais` | `kits_materiais` | `id`, `material`, `kit`, `quantidade` |
 | `/salus/estoque/medicos` | `medicos` | `id`, `nome`, `especialidade` |
-| `/salus/estoque/pacientes` | `pacientes` | `id`, `nome`, `contato` |
+| `/salus/estoque/pacientes` | `pacientes` | `id`, `nome`, `cpf`, `id_unico`, `telefone` |
 | `/salus/estoque/registros` | `registros` | `id`, `data_hora`, `tipo_procedimento`, `paciente`, `medico`, `quantidade`, `obs` |
 | `/salus/estoque/kits-registro` | `kits_registro` | `id`, `registro`, `kit`, `quantidade` |
 | `/salus/estoque/materiais-registro` | `materiais_registro` | `id`, `registro`, `material`, `quantidade` |
@@ -349,7 +349,7 @@ O path `/salus/estoque/estoque` é a tabela de saldo; `/salus/estoque` é o pref
 
 | Método | Caminho | Status | Ação |
 |---|---|---|---|
-| `GET` | `/salus/estoque/R` | 200 | Lista. Query: `id`, `codigo` (equals), `ativo` (equals), relations (equals), textos (contains). |
+| `GET` | `/salus/estoque/R` | 200 | Lista. Query: `id`, `codigo` / `cpf` / `id_unico` (equals), `ativo` (equals), relations (equals), textos (contains). |
 | `GET` | `/salus/estoque/R/:id` | 200 / 404 | Busca pelo UUID da page |
 | `POST` | `/salus/estoque/R` | 201 | Cria |
 | `PATCH` | `/salus/estoque/R/:id` | 200 | Alteração parcial |
@@ -468,7 +468,7 @@ A API descobre as tabelas dinamicamente pelo nome na página mãe. Nomes esperad
 | `kits` | `nome` (Title), `tipo_procedimento` |
 | `kits_materiais` | `material`, `kit`, `quantidade` |
 | `medicos` | `nome` (Title), `especialidade` (linked view) |
-| `pacientes` | `nome` (Title), `contato` (linked view) |
+| `pacientes` | `nome` (Title), `cpf`, `id_unico`, `telefone` (tabela-fonte; linked view na página Salus) |
 | `registros` | `data_hora`, `tipo_procedimento`, `paciente`, `medico`, `quantidade`, `obs` |
 | `kits_registro` | `registro`, `kit`, `quantidade` |
 | `materiais_registro` | `registro`, `material`, `quantidade` |

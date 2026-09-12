@@ -94,7 +94,7 @@ function filtroCampo(nome: string, tipo: TipoCampo, valor: string): Record<strin
         case "title":
             return { property: nome, title: { contains: valor } };
         case "rich_text":
-            if (nome === "codigo") {
+            if (nome === "codigo" || nome === "cpf" || nome === "id_unico") {
                 return { property: nome, rich_text: { equals: valor } };
             }
             return { property: nome, rich_text: { contains: valor } };
