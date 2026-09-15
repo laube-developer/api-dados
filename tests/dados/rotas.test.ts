@@ -62,7 +62,12 @@ const agendamento = {
     guia_assinada: false,
     insurance_id: "i1",
 };
-const clinica = { id: "c1", nome: "Salus", base_de_dados_id: "base1" };
+const clinica = {
+    id: "c1",
+    nome: "Salus",
+    base_de_dados_id: "base1",
+    whatsapp: "5561999999999",
+};
 const dominioConfirmacao = {
     dominio: "confirmar.orthosmed.com.br",
     clinica,

@@ -527,7 +527,7 @@ A API descobre as tabelas dinamicamente pelo nome na página mãe. Nomes esperad
 
 | Tabela | Colunas principais |
 |---|---|
-| `clinicas` | `nome` (Title), `base_de_dados_id` (relação/página-mãe da clínica) |
+| `clinicas` | `nome` (Title), `base_de_dados_id`, `whatsapp` |
 | `dominios_confirmacao` | `dominio`, `clinica` (relação → `clinicas`). Database id `3dc461445769809785f3c86883371f58` |
 | `gestao > estoque` | `dominio`, `clinica`, `estoque_database_page_id`, `medicos_database_id`, `pacientes_database_id`. Database id `3db4614457698097ba8ef1c82e5ddee9` |
 

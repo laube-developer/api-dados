@@ -110,6 +110,7 @@ export interface Clinica {
     id: string;
     nome: string;
     base_de_dados_id: string;
+    whatsapp: string;
 }
 
 /** Linha da tabela Notion `dominios_confirmacao`. */
