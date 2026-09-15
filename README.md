@@ -16,10 +16,10 @@ Variáveis de ambiente necessárias (arquivo `.env.local`):
 |---|---|
 | `PORT` | Porta do servidor |
 | `NOTION_API_TOKEN` | Token de integração do Notion |
-| `NOTION_DATABASE_PAGE_ID` | ID da página mãe "Base de dados" (rotas clínicas `/*`) |
-| `NOTION_SALUS_DATABASE_PAGE_ID` | ID da página mãe do estoque Salus (`/salus/estoque/*`) |
-| `NOTION_SALUS_MEDICOS_DATABASE_ID` | ID da database-fonte `medicos` (não a linked view) |
-| `NOTION_SALUS_PACIENTES_DATABASE_ID` | ID da database-fonte `pacientes` (não a linked view) |
+| `NOTION_DATABASE_PAGE_ID` | ID da página mãe "Base de dados" (rotas clínicas `/*`; **fallback** se não vier `x-base-de-dados-id`) |
+| `NOTION_SALUS_DATABASE_PAGE_ID` | Fallback da página-mãe de estoque se o domínio não vier |
+| `NOTION_SALUS_MEDICOS_DATABASE_ID` | Fallback da tabela-fonte `medicos` (sem tenant de estoque) |
+| `NOTION_SALUS_PACIENTES_DATABASE_ID` | Fallback da tabela-fonte `pacientes` (sem tenant de estoque) |
 | `AUTH_TOKEN` | Token Bearer |
 | `NOTION_API_URL` | URL base da API Notion |
 
@@ -70,7 +70,18 @@ npm test
 
 Header em todas as rotas: `Authorization: Bearer <AUTH_TOKEN>`.
 
-Contrato também em [`docs/api.md`](docs/api.md). Abaixo: rotas clínicas `/*` e estoque Salus `/salus/estoque/*`.
+### Tenant (clínica)
+
+Rotas clínicas `/*` (pacientes, agendamentos, médicos, agendas, …) usam a página-mãe Notion:
+
+1. Header `x-base-de-dados-id: <page Notion da base da clínica>` — o Super App preenche a partir de `clinica_id`
+2. Senão, `NOTION_DATABASE_PAGE_ID`
+
+`GET /clinicas`, `GET /clinica`, `GET /clinicaPorDominio`, `GET /integracaoClinica` e `GET /estoquePorDominio` leem tabelas de **configuração** (ids fixos), não a página-mãe do tenant.
+
+`/salus/estoque/*` resolve tenant pela tabela Notion `gestao > estoque` quando vem `?dominio=`, header `x-estoque-dominio` ou Host `estoque.*`. Sem domínio, usa as env `NOTION_SALUS_*` (compatível com o salus-estoque atual).
+
+Contrato canônico (todas as rotas clínicas, inclusive `/pacientes`, `/agendamentos`, `/agendamentoPorId`, `/patients_exists`, …): [`docs/api.md`](docs/api.md). Abaixo: envelope, tenant, rotas mais usadas e clínicas/domínio.
 
 ### `GET /tabelas`
 
@@ -157,7 +168,7 @@ Busca agendamentos de um paciente dentro de um intervalo de datas.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `cpf` | `string` | Sim | CPF do paciente |
+| `id_paciente` | `string` | Sim | `id_unico` do paciente (id Amigo). `cpf` só por compatibilidade legado |
 | `start_date` | `string` | Sim | Data inicial (`YYYY-MM-DD`) |
 | `end_date` | `string` | Sim | Data final (`YYYY-MM-DD`) |
 
@@ -183,7 +194,7 @@ Busca agendamentos de um paciente dentro de um intervalo de datas.
 **Exemplo:**
 
 ```
-GET /agendamento?cpf=12345678900&start_date=2026-06-01&end_date=2026-06-30
+GET /agendamento?id_paciente=99815694&start_date=2026-06-01&end_date=2026-06-30
 ```
 
 **Erro 400:** parâmetros ausentes, formato de data inválido ou `start_date` posterior a `end_date`.
@@ -317,9 +328,74 @@ Cadastra uma nova agenda.
 
 ---
 
+### `GET /clinicas`
+
+Lista páginas da tabela Notion `clinicas` (configuração, sem tenant).
+
+**Resposta (`dados`):** array de `{ id, nome, base_de_dados_id }`
+
+`id` = page Notion da clínica. `base_de_dados_id` = página-mãe das tabelas clínicas (vai em `x-base-de-dados-id`).
+
+---
+
+### `GET /clinica`
+
+Uma clínica por `id` (page Notion).
+
+**Query:** `id` obrigatório. **404** se não existir. **400** se `id` vazio.
+
+---
+
+### `GET /clinicaPorDominio`
+
+Hostname de confirmação → clínica. Tabela Notion `dominios_confirmacao` (`3dc461445769809785f3c86883371f58`): propriedade `dominio` + relação `clinica`.
+
+**Query:** `dominio` — hostname puro (`confirmar.ortopediaceilandia.com.br`). **400** se vazio. **404** se não houver linha.
+
+**Resposta (`dados`):**
+
+```json
+{
+  "dominio": "confirmar.orthosmed.com.br",
+  "clinica": {
+    "id": "<page clinicas>",
+    "nome": "Orthos",
+    "base_de_dados_id": "<page-mãe da base>"
+  }
+}
+```
+
+---
+
+### `GET /integracaoClinica`
+
+Linha(s) de **Integrações Clínicas** da clínica. Query: `clinicaId` ou `clinica_id` (page Notion). **404** se não houver linha. **400** se o id vier vazio.
+
+**Resposta (`dados`):**
+
+| Campo | Descrição |
+|---|---|
+| `integracao.name` | Nome da integração relacionada |
+| `chave_segura` | Chave Amigo |
+| `callback_confirmar` | Após o paciente confirmar (Notion `callback_confirmar` / `callback_cadastrar`) |
+| `callback_remarcar` | Após o paciente remarcar |
+| `callback_cancelar` | Após o paciente cancelar |
+
+---
+
+### `GET /estoquePorDominio`
+
+Config de estoque por hostname. Tabela Notion `gestao > estoque` (`3db4614457698097ba8ef1c82e5ddee9`).
+
+**Query:** `dominio` — ex. `estoque.orthosmed.com.br`. **400** se vazio. **404** se não houver linha.
+
+**Resposta (`dados`):** `{ dominio, clinica, estoque_database_page_id, medicos_database_id, pacientes_database_id }`
+
+---
+
 ## Rotas Salus estoque (`/salus/estoque/*`)
 
-Namespace do app de estoque da clínica Salus. Sempre usa `NOTION_SALUS_DATABASE_PAGE_ID` e **ignora** `x-base-de-dados-id`.
+Namespace do app de estoque. Com domínio de estoque, usa os IDs da tabela `gestao > estoque`. Sem domínio, fallback `NOTION_SALUS_*`.
 
 `id` no JSON e nas URLs: UUID da page Notion. Relations também são esse UUID. Sem `DELETE` público.
 
@@ -446,6 +522,14 @@ O Notion não tem transação. A API tenta o saldo até 3 vezes; se falhar, desf
 ## Tabelas do Notion
 
 A API descobre as tabelas dinamicamente pelo nome na página mãe. Nomes esperados:
+
+**Configuração (ids fixos, sem tenant):**
+
+| Tabela | Colunas principais |
+|---|---|
+| `clinicas` | `nome` (Title), `base_de_dados_id`, `whatsapp` |
+| `dominios_confirmacao` | `dominio`, `clinica` (relação → `clinicas`). Database id `3dc461445769809785f3c86883371f58` |
+| `gestao > estoque` | `dominio`, `clinica`, `estoque_database_page_id`, `medicos_database_id`, `pacientes_database_id`. Database id `3db4614457698097ba8ef1c82e5ddee9` |
 
 **Página clínica (`NOTION_DATABASE_PAGE_ID` / `x-base-de-dados-id`):**
 

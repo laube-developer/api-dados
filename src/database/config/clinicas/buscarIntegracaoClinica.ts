@@ -28,13 +28,80 @@ function texto(prop: any): string {
     if (prop.type === "url") {
         return String(prop.url ?? "").trim();
     }
+    if (prop.type === "formula" && prop.formula?.type === "string") {
+        return String(prop.formula.string ?? "").trim();
+    }
     return "";
+}
+
+function propPorNome(props: any, candidatos: string[]): any {
+    if (!props || typeof props !== "object") return undefined;
+    const normalizar = (s: string) =>
+        s
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "_");
+    const mapa = new Map<string, any>();
+    for (const [chave, valor] of Object.entries(props)) {
+        mapa.set(normalizar(chave), valor);
+    }
+    for (const nome of candidatos) {
+        const encontrado = mapa.get(normalizar(nome));
+        if (encontrado) return encontrado;
+    }
+    return undefined;
 }
 
 export type IntegracaoDaClinica = {
     integracao: { name: string };
     chave_segura: string;
+    /** Após o paciente confirmar a consulta. */
+    callback_confirmar: string;
+    /** Após o paciente remarcar. */
+    callback_remarcar: string;
+    /** Após o paciente cancelar. */
+    callback_cancelar: string;
 };
+
+function mapearLinha(row: any): Omit<IntegracaoDaClinica, "integracao"> & {
+    integracaoRelId: string;
+} {
+    const props = row?.properties ?? {};
+    return {
+        integracaoRelId: relationIds(propPorNome(props, ["integracao"]))[0] ?? "",
+        chave_segura: texto(propPorNome(props, ["chave_segura"])),
+        callback_confirmar: texto(
+            propPorNome(props, [
+                "callback_confirmar",
+                "callback_cadastrar",
+                "botconversa_confirmar_url",
+            ])
+        ),
+        callback_remarcar: texto(
+            propPorNome(props, [
+                "callback_remarcar",
+                "botconversa_reagendar_url",
+                "botconversa_remarcar_url",
+            ])
+        ),
+        callback_cancelar: texto(
+            propPorNome(props, [
+                "callback_cancelar",
+                "botconversa_concelar_url",
+                "botconversa_cancelar_url",
+            ])
+        ),
+    };
+}
+
+function primeiroPreenchido(...valores: string[]): string {
+    for (const valor of valores) {
+        const t = String(valor ?? "").trim();
+        if (t) return t;
+    }
+    return "";
+}
 
 export async function buscarIntegracaoClinica(
     clinicaId: string
@@ -52,19 +119,43 @@ export async function buscarIntegracaoClinica(
                 property: "clinica",
                 relation: { contains: id },
             },
-            page_size: 1,
+            page_size: 100,
         }
     );
 
-    const row = join?.results?.[0];
-    if (!row) {
+    const rows = Array.isArray(join?.results) ? join.results : [];
+    if (rows.length === 0) {
         return null;
     }
 
+    let integracaoRelId = "";
+    let chave_segura = "";
+    let callback_confirmar = "";
+    let callback_remarcar = "";
+    let callback_cancelar = "";
+
+    for (const row of rows) {
+        if (row?.archived) continue;
+        const linha = mapearLinha(row);
+        integracaoRelId = primeiroPreenchido(integracaoRelId, linha.integracaoRelId);
+        chave_segura = primeiroPreenchido(chave_segura, linha.chave_segura);
+        callback_confirmar = primeiroPreenchido(
+            callback_confirmar,
+            linha.callback_confirmar
+        );
+        callback_remarcar = primeiroPreenchido(
+            callback_remarcar,
+            linha.callback_remarcar
+        );
+        callback_cancelar = primeiroPreenchido(
+            callback_cancelar,
+            linha.callback_cancelar
+        );
+    }
+
     let integracaoNome = "";
-    const integRelId = relationIds(row.properties?.integracao)[0] ?? "";
-    if (integRelId) {
-        const integPage = await chamarNotionAPI(`pages/${integRelId}`, "GET", undefined, {
+    if (integracaoRelId) {
+        const integPage = await chamarNotionAPI(`pages/${integracaoRelId}`, "GET", undefined, {
             permitir404: true,
         });
         if (integPage) {
@@ -74,6 +165,9 @@ export async function buscarIntegracaoClinica(
 
     return {
         integracao: { name: integracaoNome },
-        chave_segura: texto(row.properties?.chave_segura),
+        chave_segura,
+        callback_confirmar,
+        callback_remarcar,
+        callback_cancelar,
     };
 }

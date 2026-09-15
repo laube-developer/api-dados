@@ -110,6 +110,22 @@ export interface Clinica {
     id: string;
     nome: string;
     base_de_dados_id: string;
+    whatsapp: string;
+}
+
+/** Linha da tabela Notion `dominios_confirmacao`. */
+export interface DominioConfirmacao {
+    dominio: string;
+    clinica: Clinica;
+}
+
+/** Linha da tabela Notion `gestao > estoque`. */
+export interface ConfigEstoquePorDominio {
+    dominio: string;
+    clinica: Clinica | null;
+    estoque_database_page_id: string;
+    medicos_database_id: string;
+    pacientes_database_id: string;
 }
 
 export interface SalusEstoqueTipoProcedimento { id: string; nome: string; }

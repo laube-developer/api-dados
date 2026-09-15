@@ -45,6 +45,9 @@ function texto(prop: any): string {
     if (prop.type === "unique_id") {
         return String(prop.unique_id?.number ?? "").trim();
     }
+    if (prop.type === "phone_number") {
+        return String(prop.phone_number ?? "").trim();
+    }
     return "";
 }
 
@@ -86,6 +89,7 @@ export function mapearClinica(page: any): interfaces.Clinica {
         id: String(page?.id ?? "").trim(),
         nome: titleOf(page).trim(),
         base_de_dados_id: valorTextoOuRelacao(baseProp),
+        whatsapp: texto(propPorNome(props, ["whatsapp", "telefone", "whatsapp_clinica"])),
     };
 }
 

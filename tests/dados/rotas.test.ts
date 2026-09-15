@@ -62,8 +62,30 @@ const agendamento = {
     guia_assinada: false,
     insurance_id: "i1",
 };
-const clinica = { id: "c1", nome: "Salus" };
-const integracao = { integracao: { name: "totem" }, chave_segura: "segredo" };
+const clinica = {
+    id: "c1",
+    nome: "Salus",
+    base_de_dados_id: "base1",
+    whatsapp: "5561999999999",
+};
+const dominioConfirmacao = {
+    dominio: "confirmar.orthosmed.com.br",
+    clinica,
+};
+const integracao = {
+    integracao: { name: "totem" },
+    chave_segura: "segredo",
+    callback_confirmar: "https://bot.example/confirmar",
+    callback_remarcar: "https://bot.example/remarcar",
+    callback_cancelar: "https://bot.example/cancelar",
+};
+const configEstoque = {
+    dominio: "estoque.orthosmed.com.br",
+    clinica,
+    estoque_database_page_id: "page-estoque",
+    medicos_database_id: "db-medicos",
+    pacientes_database_id: "db-pacientes",
+};
 const originais = { ...dependenciasDados };
 
 function stub(parciais: Partial<typeof dependenciasDados>) {
@@ -111,7 +133,9 @@ describe("rotas de dados /*", () => {
             buscarTableCron: async () => [{ nome: "cron" }],
             listarClinicas: async () => [clinica],
             buscarClinicaPorId: async () => clinica,
+            buscarClinicaPorDominio: async () => dominioConfirmacao,
             buscarIntegracaoClinica: async () => integracao,
+            buscarConfigEstoquePorDominio: async () => configEstoque,
         });
     });
 
@@ -575,14 +599,36 @@ describe("rotas de dados /*", () => {
             assert.equal(res.status, 400);
         });
 
+        test("GET /clinicaPorDominio retorna 200", async () => {
+            const res = await chamar(url, "GET", "/clinicaPorDominio?dominio=confirmar.orthosmed.com.br");
+            assert.equal(res.status, 200);
+            assert.deepEqual(res.json.dados, dominioConfirmacao);
+        });
+
+        test("GET /clinicaPorDominio retorna 404 quando nao encontra", async () => {
+            stub({ buscarClinicaPorDominio: async () => null });
+            const res = await chamar(url, "GET", "/clinicaPorDominio?dominio=confirmar.desconhecida.com.br");
+            assert.equal(res.status, 404);
+        });
+
+        test("GET /clinicaPorDominio retorna 400 em validacao", async () => {
+            stub({
+                buscarClinicaPorDominio: async () => {
+                    throw new ErroValidacaoClinica("dominio obrigatorio");
+                },
+            });
+            const res = await chamar(url, "GET", "/clinicaPorDominio");
+            assert.equal(res.status, 400);
+        });
+
         test("GET /integracaoClinica retorna 200", async () => {
             const res = await chamar(url, "GET", "/integracaoClinica?clinicaId=c1");
             assert.equal(res.status, 200);
             assert.deepEqual(res.json.dados, integracao);
         });
 
-        test("GET /integracaoClinica retorna 404 sem chave_segura", async () => {
-            stub({ buscarIntegracaoClinica: async () => ({ integracao: { name: "x" }, chave_segura: "" }) });
+        test("GET /integracaoClinica retorna 404 quando nao encontra linha", async () => {
+            stub({ buscarIntegracaoClinica: async () => null });
             const res = await chamar(url, "GET", "/integracaoClinica?clinicaId=c1");
             assert.equal(res.status, 404);
         });
@@ -594,6 +640,28 @@ describe("rotas de dados /*", () => {
                 },
             });
             const res = await chamar(url, "GET", "/integracaoClinica");
+            assert.equal(res.status, 400);
+        });
+
+        test("GET /estoquePorDominio retorna 200", async () => {
+            const res = await chamar(url, "GET", "/estoquePorDominio?dominio=estoque.orthosmed.com.br");
+            assert.equal(res.status, 200);
+            assert.deepEqual(res.json.dados, configEstoque);
+        });
+
+        test("GET /estoquePorDominio retorna 404 quando nao encontra", async () => {
+            stub({ buscarConfigEstoquePorDominio: async () => null });
+            const res = await chamar(url, "GET", "/estoquePorDominio?dominio=estoque.desconhecida.com.br");
+            assert.equal(res.status, 404);
+        });
+
+        test("GET /estoquePorDominio retorna 400 em validacao", async () => {
+            stub({
+                buscarConfigEstoquePorDominio: async () => {
+                    throw new ErroValidacaoClinica("dominio obrigatorio");
+                },
+            });
+            const res = await chamar(url, "GET", "/estoquePorDominio");
             assert.equal(res.status, 400);
         });
     });

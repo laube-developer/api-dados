@@ -53,11 +53,11 @@ Não há `DELETE` público. Páginas Notion só são arquivadas internamente com
 | `NOTION_API_TOKEN` | Integração Notion |
 | `NOTION_API_URL` | Base da API Notion |
 | `NOTION_DATABASE_PAGE_ID` | Página-mãe das rotas clínicas `/*` (fallback se o header de tenant não vier) |
-| `NOTION_SALUS_DATABASE_PAGE_ID` | Página-mãe das rotas `/salus/estoque/*` |
-| `NOTION_SALUS_MEDICOS_DATABASE_ID` | Database-id da tabela-fonte `medicos` (linked view na página Salus não é consultável pela API) |
-| `NOTION_SALUS_PACIENTES_DATABASE_ID` | Database-id da tabela-fonte `pacientes` |
+| `NOTION_SALUS_DATABASE_PAGE_ID` | Fallback das rotas `/salus/estoque/*` se o domínio de estoque não vier |
+| `NOTION_SALUS_MEDICOS_DATABASE_ID` | Fallback da tabela-fonte `medicos` (sem tenant de estoque) |
+| `NOTION_SALUS_PACIENTES_DATABASE_ID` | Fallback da tabela-fonte `pacientes` (sem tenant de estoque) |
 
-Rotas `/*` aceitam `x-base-de-dados-id` (tenant/clínica). Rotas `/salus/estoque/*` **ignoram** esse header e usam sempre `NOTION_SALUS_DATABASE_PAGE_ID`.
+Rotas `/*` aceitam `x-base-de-dados-id` (tenant/clínica). Rotas `/salus/estoque/*` usam a tabela Notion `gestao > estoque` (`3db4614457698097ba8ef1c82e5ddee9`) quando o domínio vem em `?dominio=`, `x-estoque-dominio` ou Host `estoque.*`. Sem domínio, caem no fallback das env.
 
 ---
 
@@ -92,7 +92,9 @@ Paths e contratos iguais aos de produção. Tenant: `x-base-de-dados-id`.
 | GET | `/buscarTableCron` | Tabelas de cron |
 | GET | `/clinicas` | Lista clínicas |
 | GET | `/clinica` | Por `id` |
-| GET | `/integracaoClinica` | Por `clinicaId` |
+| GET | `/clinicaPorDominio` | Por `dominio` (tabela Notion `dominios_confirmacao`, id `3dc461445769809785f3c86883371f58`). `dados`: `{ dominio, clinica: { id, nome, base_de_dados_id } }`. 400 se `dominio` vazio; 404 se não houver linha |
+| GET | `/integracaoClinica` | Por `clinicaId` / `clinica_id`. `dados`: `{ integracao, chave_segura, callback_confirmar, callback_remarcar, callback_cancelar }`. 404 se não houver linha |
+| GET | `/estoquePorDominio` | Por `dominio` (tabela Notion `gestao > estoque`, id `3db4614457698097ba8ef1c82e5ddee9`). `dados`: `{ dominio, clinica, estoque_database_page_id, medicos_database_id, pacientes_database_id }` |
 
 ---
 
