@@ -1,4 +1,5 @@
 name: Deploy em Produção
+
 on:
   push:
     branches:
@@ -7,22 +8,21 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
-    steps:
-      - name: Checkout do repositório
-        uses: actions/checkout@v3
 
-      - name: Sincronizar arquivos com a pasta do projeto
+    steps:
+      - name: Atualizar código
         run: |
-          rsync -avz --exclude '.git' --exclude 'node_modules' ./ /home/totem-software/api-dados
+          cd /home/totem-software/api-dados
+          git fetch origin
+          git reset --hard origin/main
 
       - name: Build
         run: |
           cd /home/totem-software/api-dados
-          npm install
+          npm ci
           npm run build
-      
+
       - name: Deploy
         run: |
           cd /home/totem-software/api-dados
           pm2 restart apidados --update-env
-      
