@@ -60,7 +60,9 @@ import {
     ErroValidacaoClinica,
     listarClinicas,
 } from "../../database/config/clinicas/buscarClinica";
+import { buscarClinicaPorDominio } from "../../database/config/clinicas/buscarDominioConfirmacao";
 import { buscarIntegracaoClinica } from "../../database/config/clinicas/buscarIntegracaoClinica";
+import { buscarConfigEstoquePorDominio } from "../../database/config/estoque/buscarEstoquePorDominio";
 
 export const dependenciasDados = {
     buscarTabelasBanco,
@@ -88,7 +90,9 @@ export const dependenciasDados = {
     buscarTableCron,
     listarClinicas,
     buscarClinicaPorId,
+    buscarClinicaPorDominio,
     buscarIntegracaoClinica,
+    buscarConfigEstoquePorDominio,
 };
 
 export const rotasDados = express.Router();
@@ -501,12 +505,34 @@ rotasDados.get("/clinica", async (req: express.Request, res: express.Response) =
     }
 });
 
+rotasDados.get("/clinicaPorDominio", async (req: express.Request, res: express.Response) => {
+    try {
+        const dominio = String(req.query.dominio ?? "").trim();
+        const dados = await dependenciasDados.buscarClinicaPorDominio(dominio);
+
+        if (!dados) {
+            return responderErro(res, "Domínio de confirmação não encontrado", 404);
+        }
+
+        return responderSucesso(res, dados);
+    } catch (error) {
+        console.error(error);
+        if (error instanceof ErroValidacaoClinica) {
+            return responderErro(res, error.message, 400);
+        }
+        const mensagem = error instanceof Error ? error.message : "Erro ao buscar clínica por domínio";
+        return responderErro(res, mensagem);
+    }
+});
+
 rotasDados.get("/integracaoClinica", async (req: express.Request, res: express.Response) => {
     try {
-        const clinicaId = String(req.query.clinicaId ?? "").trim();
+        const clinicaId = String(
+            req.query.clinicaId ?? req.query.clinica_id ?? ""
+        ).trim();
         const dados = await dependenciasDados.buscarIntegracaoClinica(clinicaId);
 
-        if (!dados || !dados.chave_segura) {
+        if (!dados) {
             return responderErro(res, "Integração da clínica não encontrada", 404);
         }
 
@@ -517,6 +543,26 @@ rotasDados.get("/integracaoClinica", async (req: express.Request, res: express.R
             return responderErro(res, error.message, 400);
         }
         const mensagem = error instanceof Error ? error.message : "Erro ao buscar integração da clínica";
+        return responderErro(res, mensagem);
+    }
+});
+
+rotasDados.get("/estoquePorDominio", async (req: express.Request, res: express.Response) => {
+    try {
+        const dominio = String(req.query.dominio ?? "").trim();
+        const dados = await dependenciasDados.buscarConfigEstoquePorDominio(dominio);
+
+        if (!dados) {
+            return responderErro(res, "Domínio de estoque não encontrado", 404);
+        }
+
+        return responderSucesso(res, dados);
+    } catch (error) {
+        console.error(error);
+        if (error instanceof ErroValidacaoClinica) {
+            return responderErro(res, error.message, 400);
+        }
+        const mensagem = error instanceof Error ? error.message : "Erro ao buscar estoque por domínio";
         return responderErro(res, mensagem);
     }
 });
