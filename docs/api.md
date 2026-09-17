@@ -93,7 +93,7 @@ Paths e contratos iguais aos de produção. Tenant: `x-base-de-dados-id`.
 | GET | `/clinicas` | Lista clínicas |
 | GET | `/clinica` | Por `id` |
 | GET | `/clinicaPorDominio` | Por `dominio` (tabela Notion `dominios_confirmacao`, id `3dc461445769809785f3c86883371f58`). `dados`: `{ dominio, clinica: { id, nome, base_de_dados_id } }`. 400 se `dominio` vazio; 404 se não houver linha |
-| GET | `/integracaoClinica` | Por `clinicaId` / `clinica_id`. `dados`: `{ integracao, chave_segura, callback_confirmar, callback_remarcar, callback_cancelar }`. 404 se não houver linha |
+| GET | `/integracaoClinica` | Por `clinicaId` / `clinica_id`. `dados`: `{ integracao, chave_segura, botconversa_msg_url, callback_confirmar, callback_remarcar, callback_cancelar }`. 404 se não houver linha |
 | GET | `/estoquePorDominio` | Por `dominio` (tabela Notion `gestao > estoque`, id `3db4614457698097ba8ef1c82e5ddee9`). `dados`: `{ dominio, clinica, estoque_database_page_id, medicos_database_id, pacientes_database_id }` |
 
 ---
