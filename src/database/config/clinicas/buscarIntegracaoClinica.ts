@@ -56,6 +56,7 @@ function propPorNome(props: any, candidatos: string[]): any {
 export type IntegracaoDaClinica = {
     integracao: { name: string };
     chave_segura: string;
+    botconversa_msg_url: string;
     /** Após o paciente confirmar a consulta. */
     callback_confirmar: string;
     /** Após o paciente remarcar. */
@@ -71,6 +72,9 @@ function mapearLinha(row: any): Omit<IntegracaoDaClinica, "integracao"> & {
     return {
         integracaoRelId: relationIds(propPorNome(props, ["integracao"]))[0] ?? "",
         chave_segura: texto(propPorNome(props, ["chave_segura"])),
+        botconversa_msg_url: texto(
+            propPorNome(props, ["botconversa_msg_url", "botconversa_message_url"])
+        ),
         callback_confirmar: texto(
             propPorNome(props, [
                 "callback_confirmar",
@@ -130,6 +134,7 @@ export async function buscarIntegracaoClinica(
 
     let integracaoRelId = "";
     let chave_segura = "";
+    let botconversa_msg_url = "";
     let callback_confirmar = "";
     let callback_remarcar = "";
     let callback_cancelar = "";
@@ -139,6 +144,10 @@ export async function buscarIntegracaoClinica(
         const linha = mapearLinha(row);
         integracaoRelId = primeiroPreenchido(integracaoRelId, linha.integracaoRelId);
         chave_segura = primeiroPreenchido(chave_segura, linha.chave_segura);
+        botconversa_msg_url = primeiroPreenchido(
+            botconversa_msg_url,
+            linha.botconversa_msg_url
+        );
         callback_confirmar = primeiroPreenchido(
             callback_confirmar,
             linha.callback_confirmar
@@ -166,6 +175,7 @@ export async function buscarIntegracaoClinica(
     return {
         integracao: { name: integracaoNome },
         chave_segura,
+        botconversa_msg_url,
         callback_confirmar,
         callback_remarcar,
         callback_cancelar,

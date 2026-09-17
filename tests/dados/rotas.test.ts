@@ -75,6 +75,7 @@ const dominioConfirmacao = {
 const integracao = {
     integracao: { name: "totem" },
     chave_segura: "segredo",
+    botconversa_msg_url: "https://bot.example/msg",
     callback_confirmar: "https://bot.example/confirmar",
     callback_remarcar: "https://bot.example/remarcar",
     callback_cancelar: "https://bot.example/cancelar",
