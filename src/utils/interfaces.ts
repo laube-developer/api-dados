@@ -168,7 +168,6 @@ export interface EstoqueRegistro {
     tipo_procedimento: string;
     paciente: string;
     medico: string;
-    quantidade: number;
     obs: string;
 }
 export interface EstoqueKitRegistro {

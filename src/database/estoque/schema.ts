@@ -141,7 +141,6 @@ export const RECURSOS: RecursoSchema[] = [
             campo("tipo_procedimento", "relation", true),
             campo("paciente", "relation", true),
             campo("medico", "relation", true),
-            campo("quantidade", "number", true),
             campo("obs", "rich_text"),
         ],
     },
