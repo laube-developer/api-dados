@@ -1,7 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { escreverCampo, jsonParaProperties, lerCampo, paginaParaJson } from "../../../src/database/salus/estoque/mapear";
-import { recursoPorTabela } from "../../../src/database/salus/estoque/schema";
+import { escreverCampo, jsonParaProperties, lerCampo, paginaParaJson } from "../../src/database/estoque/mapear";
+import { recursoPorTabela } from "../../src/database/estoque/schema";
 
 describe("mapear Notion ↔ JSON", () => {
     test("title e rich_text leem a posição [0]", () => {

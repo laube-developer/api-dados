@@ -5,8 +5,8 @@ import {
     ErroOperacaoNaoConcluida,
     ErroSaldoInsuficiente,
     ErroValidacao,
-} from "../../../database/salus/estoque/erros";
-import { responderErro } from "../../../utils/respostas";
+} from "../../database/estoque/erros";
+import { responderErro } from "../../utils/respostas";
 
 export function responderErroEstoque(res: Response, error: unknown) {
     if (error instanceof ErroValidacao || error instanceof ErroSaldoInsuficiente) {

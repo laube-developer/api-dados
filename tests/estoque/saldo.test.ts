@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { dependenciasEstoque } from "../../../src/database/salus/estoque/deps";
-import { ErroSaldoInsuficiente } from "../../../src/database/salus/estoque/erros";
-import { aplicarDeltaSaldo, decrementarSaldo, incrementarSaldo, obterSaldo } from "../../../src/database/salus/estoque/saldo";
+import { dependenciasEstoque } from "../../src/database/estoque/deps";
+import { ErroSaldoInsuficiente } from "../../src/database/estoque/erros";
+import { aplicarDeltaSaldo, decrementarSaldo, incrementarSaldo, obterSaldo } from "../../src/database/estoque/saldo";
 
 const originais = { ...dependenciasEstoque };
 

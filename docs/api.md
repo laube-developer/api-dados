@@ -53,11 +53,8 @@ Não há `DELETE` público. Páginas Notion só são arquivadas internamente com
 | `NOTION_API_TOKEN` | Integração Notion |
 | `NOTION_API_URL` | Base da API Notion |
 | `NOTION_DATABASE_PAGE_ID` | Página-mãe das rotas clínicas `/*` (fallback se o header de tenant não vier) |
-| `NOTION_SALUS_DATABASE_PAGE_ID` | Fallback das rotas `/salus/estoque/*` se o domínio de estoque não vier |
-| `NOTION_SALUS_MEDICOS_DATABASE_ID` | Fallback da tabela-fonte `medicos` (sem tenant de estoque) |
-| `NOTION_SALUS_PACIENTES_DATABASE_ID` | Fallback da tabela-fonte `pacientes` (sem tenant de estoque) |
 
-Rotas `/*` aceitam `x-base-de-dados-id` (tenant/clínica). Rotas `/salus/estoque/*` usam a tabela Notion `gestao > estoque` (`3db4614457698097ba8ef1c82e5ddee9`) quando o domínio vem em `?dominio=`, `x-estoque-dominio` ou Host `estoque.*`. Sem domínio, caem no fallback das env.
+Rotas `/*` aceitam `x-base-de-dados-id` (tenant/clínica). Rotas `/estoque/*` usam a tabela Notion `gestao > estoque` (`3db4614457698097ba8ef1c82e5ddee9`) quando o domínio vem em `?dominio=`, `x-estoque-dominio` ou Host `estoque.*`. Sem domínio → 400. Domínio não cadastrado → 404. Sem fallback de env.
 
 ---
 
@@ -98,7 +95,7 @@ Paths e contratos iguais aos de produção. Tenant: `x-base-de-dados-id`.
 
 ---
 
-## Rotas Salus estoque (`/salus/estoque/*`)
+## Rotas de estoque (`/estoque/*`)
 
 Identificador de todo recurso: **UUID da page Notion**. Relations no JSON usam o mesmo UUID.
 
@@ -106,36 +103,36 @@ Identificador de todo recurso: **UUID da page Notion**. Relations no JSON usam o
 
 | URL | Tabela Notion |
 |---|---|
-| `/salus/estoque/tipos-procedimentos` | `tipos_procedimentos` |
-| `/salus/estoque/materiais` | `materiais` |
-| `/salus/estoque/fornecedores` | `fornecedores` |
-| `/salus/estoque/compras` | `compras` |
-| `/salus/estoque/itens-compra` | `itens_compra` |
-| `/salus/estoque/kits` | `kits` |
-| `/salus/estoque/kits-materiais` | `kits_materiais` |
-| `/salus/estoque/medicos` | `medicos` |
-| `/salus/estoque/pacientes` | `pacientes` |
-| `/salus/estoque/registros` | `registros` |
-| `/salus/estoque/kits-registro` | `kits_registro` |
-| `/salus/estoque/materiais-registro` | `materiais_registro` |
-| `/salus/estoque/estoque` | `estoque` (saldo) |
+| `/estoque/tipos-procedimentos` | `tipos_procedimentos` |
+| `/estoque/materiais` | `materiais` |
+| `/estoque/fornecedores` | `fornecedores` |
+| `/estoque/compras` | `compras` |
+| `/estoque/itens-compra` | `itens_compra` |
+| `/estoque/kits` | `kits` |
+| `/estoque/kits-materiais` | `kits_materiais` |
+| `/estoque/medicos` | `medicos` |
+| `/estoque/pacientes` | `pacientes` |
+| `/estoque/registros` | `registros` |
+| `/estoque/kits-registro` | `kits_registro` |
+| `/estoque/materiais-registro` | `materiais_registro` |
+| `/estoque/estoque` | `estoque` (saldo) |
 
-O slug final `/estoque` é a tabela de saldo; o prefixo `/salus/estoque` é o módulo.
+O slug final `/estoque` é a tabela de saldo; o prefixo `/estoque` é o módulo.
 
 ### CRUD padrão (recurso `R`)
 
 | Método | Caminho | Status |
 |---|---|---|
-| GET | `/salus/estoque/R` | 200 lista. Query: `id`, `codigo` / `cpf` / `id_unico` (equals), `ativo` (equals), relations (`contains`; vários IDs separados por vírgula viram `OR`), textos (contains), `q` (contains em title/rich_text com `OR`), `data_hora_de` / `data_hora_ate` (intervalo no campo date), `limit` (1–100) e `page` (≥ 1). Sem `limit`, percorre todas as páginas Notion. Com `limit`, o envelope inclui `paginacao: { page, limit, has_more }`. |
-| GET | `/salus/estoque/R/:id` | 200 ou 404 |
-| POST | `/salus/estoque/R` | 201 |
-| PATCH | `/salus/estoque/R/:id` | 200 parcial. Sem DELETE. |
+| GET | `/estoque/R` | 200 lista. Query: `id`, `codigo` / `cpf` / `id_unico` (equals), `ativo` (equals), relations (`contains`; vários IDs separados por vírgula viram `OR`), textos (contains), `q` (contains em title/rich_text com `OR`), `data_hora_de` / `data_hora_ate` (intervalo no campo date), `limit` (1–100) e `page` (≥ 1). Sem `limit`, percorre todas as páginas Notion. Com `limit`, o envelope inclui `paginacao: { page, limit, has_more }`. |
+| GET | `/estoque/R/:id` | 200 ou 404 |
+| POST | `/estoque/R` | 201 |
+| PATCH | `/estoque/R/:id` | 200 parcial. Sem DELETE. |
 
 Validação POST: `nome` obrigatório só quando é Title de negócio; relations obrigatórias; `quantidade` inteiro ≥ 0; `data_hora` ISO 8601; `ativo` boolean (default `true` na criação).
 
-Campos por tabela: ver plano / interfaces `SalusEstoque*` em `src/utils/interfaces.ts`.
+Campos por tabela: ver plano / interfaces `Estoque*` em `src/utils/interfaces.ts`.
 
-`medicos` e `pacientes` **não** são descobertos nos filhos da página Salus (linked view / `Untitled` não é um `child_database` consultável). O CRUD usa o `database_id` da tabela-fonte (`NOTION_SALUS_MEDICOS_DATABASE_ID` / `NOTION_SALUS_PACIENTES_DATABASE_ID`). Pacientes expõe `nome`, `cpf`, `id_unico` e `telefone` (property Notion `phone_number`). Query `?cpf=` e `?id_unico=` usam `equals`.
+`medicos` e `pacientes` **não** são descobertos nos filhos da página de estoque (linked view / `Untitled` não é um `child_database` consultável). O CRUD usa `medicos_database_id` e `pacientes_database_id` da linha em `gestao > estoque`. Pacientes expõe `nome`, `cpf`, `id_unico` e `telefone` (property Notion `phone_number`). Query `?cpf=` e `?id_unico=` usam `equals`.
 
 ### Ativar / desativar
 
@@ -143,14 +140,14 @@ Só em tabelas com `ativo` (hoje: `fornecedores`).
 
 | Método | Caminho |
 |---|---|
-| POST | `/salus/estoque/{R}/:id/ativar` |
-| POST | `/salus/estoque/{R}/:id/desativar` |
+| POST | `/estoque/{R}/:id/ativar` |
+| POST | `/estoque/{R}/:id/desativar` |
 
 404 se o registro não existir.
 
 ### Compras (entrada de saldo)
 
-`POST /salus/estoque/compras` aceita itens aninhados. O saldo **sobe** em cada item, não no cabeçalho.
+`POST /estoque/compras` aceita itens aninhados. O saldo **sobe** em cada item, não no cabeçalho.
 
 ```json
 {
@@ -163,14 +160,14 @@ Só em tabelas com `ativo` (hoje: `fornecedores`).
 ```
 
 - Sem `itens` (ou array vazio): só cria a compra; não mexe em saldo.
-- `POST /salus/estoque/itens-compra` avulso também incrementa saldo.
+- `POST /estoque/itens-compra` avulso também incrementa saldo.
 - `PATCH` em `itens-compra` que altere `quantidade` aplica o delta. Delta negativo que deixe saldo < 0 → 400, sem gravar.
 
 Só responde **201** se entidades **e** saldo tiverem sido gravados.
 
 ### Registros (saída / baixa)
 
-`POST /salus/estoque/registros`:
+`POST /estoque/registros`:
 
 ```json
 {
@@ -194,7 +191,7 @@ consumo[material] = soma(materiais[].quantidade)
 
 Se algum saldo < consumo → **400** com a lista de faltas; não cria registro. `POST /kits-registro` e `POST /materiais-registro` avulsos seguem a mesma baixa. PATCH de `quantidade` nessas linhas aplica delta.
 
-### Tabela `/salus/estoque/estoque`
+### Tabela `/estoque/estoque`
 
 CRUD direto do saldo (ajuste manual). Caminho normal: compra (entrada) e registro (saída). Uma linha por `material`.
 

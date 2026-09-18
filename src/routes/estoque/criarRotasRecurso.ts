@@ -1,7 +1,7 @@
 import type { Router } from "express";
-import type { RecursoSchema } from "../../../database/salus/estoque/schema";
-import { servicosEstoque } from "../../../database/salus/estoque/servicos";
-import { responderSucesso } from "../../../utils/respostas";
+import type { RecursoSchema } from "../../database/estoque/schema";
+import { servicosEstoque } from "../../database/estoque/servicos";
+import { responderSucesso } from "../../utils/respostas";
 import { tratar } from "./errosHttp";
 
 export function criarRotasRecurso(router: Router, recurso: RecursoSchema) {

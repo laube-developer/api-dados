@@ -2,7 +2,7 @@
 
 API Gateway em Node.js + Express que lê, filtra, adiciona e altera dados em tabelas do Notion.
 
-**Contrato HTTP canônico:** [`docs/api.md`](docs/api.md) (rotas clínicas `/*` e `/salus/estoque/*`).
+**Contrato HTTP canônico:** [`docs/api.md`](docs/api.md) (rotas clínicas `/*` e `/estoque/*`).
 
 ## Execução
 
@@ -17,9 +17,6 @@ Variáveis de ambiente necessárias (arquivo `.env.local`):
 | `PORT` | Porta do servidor |
 | `NOTION_API_TOKEN` | Token de integração do Notion |
 | `NOTION_DATABASE_PAGE_ID` | ID da página mãe "Base de dados" (rotas clínicas `/*`; **fallback** se não vier `x-base-de-dados-id`) |
-| `NOTION_SALUS_DATABASE_PAGE_ID` | Fallback da página-mãe de estoque se o domínio não vier |
-| `NOTION_SALUS_MEDICOS_DATABASE_ID` | Fallback da tabela-fonte `medicos` (sem tenant de estoque) |
-| `NOTION_SALUS_PACIENTES_DATABASE_ID` | Fallback da tabela-fonte `pacientes` (sem tenant de estoque) |
 | `AUTH_TOKEN` | Token Bearer |
 | `NOTION_API_URL` | URL base da API Notion |
 
@@ -79,7 +76,7 @@ Rotas clínicas `/*` (pacientes, agendamentos, médicos, agendas, …) usam a p�
 
 `GET /clinicas`, `GET /clinica`, `GET /clinicaPorDominio`, `GET /integracaoClinica` e `GET /estoquePorDominio` leem tabelas de **configuração** (ids fixos), não a página-mãe do tenant.
 
-`/salus/estoque/*` resolve tenant pela tabela Notion `gestao > estoque` quando vem `?dominio=`, header `x-estoque-dominio` ou Host `estoque.*`. Sem domínio, usa as env `NOTION_SALUS_*` (compatível com o salus-estoque atual).
+`/estoque/*` resolve tenant pela tabela Notion `gestao > estoque` (`?dominio=`, header `x-estoque-dominio` ou Host `estoque.*`). Sem domínio → **400**. Domínio ausente na tabela → **404**. Sem fallback de env.
 
 Contrato canônico (todas as rotas clínicas, inclusive `/pacientes`, `/agendamentos`, `/agendamentoPorId`, `/patients_exists`, …): [`docs/api.md`](docs/api.md). Abaixo: envelope, tenant, rotas mais usadas e clínicas/domínio.
 
@@ -393,9 +390,9 @@ Config de estoque por hostname. Tabela Notion `gestao > estoque` (`3db4614457698
 
 ---
 
-## Rotas Salus estoque (`/salus/estoque/*`)
+## Rotas de estoque (`/estoque/*`)
 
-Namespace do app de estoque. Com domínio de estoque, usa os IDs da tabela `gestao > estoque`. Sem domínio, fallback `NOTION_SALUS_*`.
+Namespace do app de estoque. Exige domínio (`?dominio=`, `x-estoque-dominio` ou Host `estoque.*`) e usa os IDs da tabela `gestao > estoque`. Sem domínio → 400. Domínio desconhecido → 404.
 
 `id` no JSON e nas URLs: UUID da page Notion. Relations também são esse UUID. Sem `DELETE` público.
 
@@ -403,21 +400,21 @@ Namespace do app de estoque. Com domínio de estoque, usa os IDs da tabela `gest
 
 | URL | Tabela Notion | Campos da API |
 |---|---|---|
-| `/salus/estoque/tipos-procedimentos` | `tipos_procedimentos` | `id`, `nome` |
-| `/salus/estoque/materiais` | `materiais` | `id`, `nome`, `codigo` |
-| `/salus/estoque/fornecedores` | `fornecedores` | `id`, `nome`, `contato`, `whatsapp`, `email`, `obs`, `ativo` |
-| `/salus/estoque/compras` | `compras` | `id`, `data_hora`, `obs` |
-| `/salus/estoque/itens-compra` | `itens_compra` | `id`, `compra`, `material`, `fornecedor`, `quantidade` |
-| `/salus/estoque/kits` | `kits` | `id`, `nome`, `tipo_procedimento` |
-| `/salus/estoque/kits-materiais` | `kits_materiais` | `id`, `material`, `kit`, `quantidade` |
-| `/salus/estoque/medicos` | `medicos` | `id`, `nome`, `especialidade` |
-| `/salus/estoque/pacientes` | `pacientes` | `id`, `nome`, `cpf`, `id_unico`, `telefone` |
-| `/salus/estoque/registros` | `registros` | `id`, `data_hora`, `tipo_procedimento`, `paciente`, `medico`, `quantidade`, `obs` |
-| `/salus/estoque/kits-registro` | `kits_registro` | `id`, `registro`, `kit`, `quantidade` |
-| `/salus/estoque/materiais-registro` | `materiais_registro` | `id`, `registro`, `material`, `quantidade` |
-| `/salus/estoque/estoque` | `estoque` | `id`, `material`, `quantidade`, `nome` (saldo) |
+| `/estoque/tipos-procedimentos` | `tipos_procedimentos` | `id`, `nome` |
+| `/estoque/materiais` | `materiais` | `id`, `nome`, `codigo` |
+| `/estoque/fornecedores` | `fornecedores` | `id`, `nome`, `contato`, `whatsapp`, `email`, `obs`, `ativo` |
+| `/estoque/compras` | `compras` | `id`, `data_hora`, `obs` |
+| `/estoque/itens-compra` | `itens_compra` | `id`, `compra`, `material`, `fornecedor`, `quantidade` |
+| `/estoque/kits` | `kits` | `id`, `nome`, `tipo_procedimento` |
+| `/estoque/kits-materiais` | `kits_materiais` | `id`, `material`, `kit`, `quantidade` |
+| `/estoque/medicos` | `medicos` | `id`, `nome`, `especialidade` |
+| `/estoque/pacientes` | `pacientes` | `id`, `nome`, `cpf`, `id_unico`, `telefone` |
+| `/estoque/registros` | `registros` | `id`, `data_hora`, `tipo_procedimento`, `paciente`, `medico`, `quantidade`, `obs` |
+| `/estoque/kits-registro` | `kits_registro` | `id`, `registro`, `kit`, `quantidade` |
+| `/estoque/materiais-registro` | `materiais_registro` | `id`, `registro`, `material`, `quantidade` |
+| `/estoque/estoque` | `estoque` | `id`, `material`, `quantidade`, `nome` (saldo) |
 
-O path `/salus/estoque/estoque` é a tabela de saldo; `/salus/estoque` é o prefixo do módulo.
+O path `/estoque/estoque` é a tabela de saldo; `/estoque` é o prefixo do módulo.
 
 `nome` é obrigatório no POST quando é Title de negócio (`tipos-procedimentos`, `materiais`, `fornecedores`, `kits`, `medicos`, `pacientes`). Nas demais o backend preenche o Title sozinho.
 
@@ -425,16 +422,16 @@ O path `/salus/estoque/estoque` é a tabela de saldo; `/salus/estoque` é o pref
 
 | Método | Caminho | Status | Ação |
 |---|---|---|---|
-| `GET` | `/salus/estoque/R` | 200 | Lista. Query: `id`, `codigo` / `cpf` / `id_unico` (equals), `ativo` (equals), relations (equals), textos (contains). |
-| `GET` | `/salus/estoque/R/:id` | 200 / 404 | Busca pelo UUID da page |
-| `POST` | `/salus/estoque/R` | 201 | Cria |
-| `PATCH` | `/salus/estoque/R/:id` | 200 | Alteração parcial |
+| `GET` | `/estoque/R` | 200 | Lista. Query: `id`, `codigo` / `cpf` / `id_unico` (equals), `ativo` (equals), relations (equals), textos (contains). |
+| `GET` | `/estoque/R/:id` | 200 / 404 | Busca pelo UUID da page |
+| `POST` | `/estoque/R` | 201 | Cria |
+| `PATCH` | `/estoque/R/:id` | 200 | Alteração parcial |
 
 **Exemplo** — listar e criar tipo de procedimento:
 
 ```
-GET /salus/estoque/tipos-procedimentos
-POST /salus/estoque/tipos-procedimentos
+GET /estoque/tipos-procedimentos
+POST /estoque/tipos-procedimentos
 ```
 
 ```json
@@ -446,11 +443,11 @@ POST /salus/estoque/tipos-procedimentos
 
 Validação POST: relations obrigatórias; `quantidade` inteiro ≥ 0; `data_hora` ISO 8601; `ativo` boolean (default `true` se omitido).
 
-### `POST /salus/estoque/fornecedores/:id/ativar` e `/desativar`
+### `POST /estoque/fornecedores/:id/ativar` e `/desativar`
 
 Só em tabelas com `ativo` (hoje: `fornecedores`). 200 com o registro atualizado; 404 se não existir.
 
-### `POST /salus/estoque/compras`
+### `POST /estoque/compras`
 
 Cria a compra e, se vierem `itens`, cada item incrementa o saldo do material. Sem `itens` (ou array vazio): só o cabeçalho, sem mexer no saldo. Só responde **201** se entidades e saldo tiverem sido gravados.
 
@@ -474,9 +471,9 @@ Cada item: `material` (uuid), `fornecedor` (uuid), `quantidade` (inteiro ≥ 0).
 }
 ```
 
-`POST /salus/estoque/itens-compra` avulso também incrementa o saldo. `PATCH` em `itens-compra` que altere `quantidade` aplica o delta; delta negativo que deixe saldo < 0 → **400**, sem gravar.
+`POST /estoque/itens-compra` avulso também incrementa o saldo. `PATCH` em `itens-compra` que altere `quantidade` aplica o delta; delta negativo que deixe saldo < 0 → **400**, sem gravar.
 
-### `POST /salus/estoque/registros`
+### `POST /estoque/registros`
 
 Cria o atendimento e dá baixa no saldo a partir de `kits` e/ou `materiais`. Se o saldo não cobrir o consumo → **400** e nada é criado. `registros.quantidade` é o campo do atendimento; **não** multiplica o BOM.
 
@@ -498,9 +495,9 @@ consumo[material] = soma(materiais[].quantidade)
   + soma(kits[].quantidade * kits_materiais(kit, material).quantidade)
 ```
 
-`POST /salus/estoque/kits-registro` e `POST /salus/estoque/materiais-registro` avulsos seguem a mesma baixa. PATCH de `quantidade` nessas linhas aplica delta.
+`POST /estoque/kits-registro` e `POST /estoque/materiais-registro` avulsos seguem a mesma baixa. PATCH de `quantidade` nessas linhas aplica delta.
 
-### `GET/POST/PATCH /salus/estoque/estoque`
+### `GET/POST/PATCH /estoque/estoque`
 
 CRUD direto do saldo (ajuste manual). Uma linha por `material`. Caminho normal: compra (entrada) e registro (saída).
 
@@ -540,7 +537,7 @@ A API descobre as tabelas dinamicamente pelo nome na página mãe. Nomes esperad
 | `medicos` | `nome` (Title), `id_unico` (Rich Text) |
 | `agendas` | `nome` (Title), `id_unico` (Rich Text) |
 
-**Página estoque Salus (`NOTION_SALUS_DATABASE_PAGE_ID`):**
+**Página estoque (`estoque_database_page_id` da linha em `gestao > estoque`):**
 
 | Tabela | Colunas principais |
 |---|---|
@@ -552,7 +549,7 @@ A API descobre as tabelas dinamicamente pelo nome na página mãe. Nomes esperad
 | `kits` | `nome` (Title), `tipo_procedimento` |
 | `kits_materiais` | `material`, `kit`, `quantidade` |
 | `medicos` | `nome` (Title), `especialidade` (linked view) |
-| `pacientes` | `nome` (Title), `cpf`, `id_unico`, `telefone` (tabela-fonte; linked view na página Salus) |
+| `pacientes` | `nome` (Title), `cpf`, `id_unico`, `telefone` (tabela-fonte; linked view na página de estoque) |
 | `registros` | `data_hora`, `tipo_procedimento`, `paciente`, `medico`, `quantidade`, `obs` |
 | `kits_registro` | `registro`, `kit`, `quantidade` |
 | `materiais_registro` | `registro`, `material`, `quantidade` |

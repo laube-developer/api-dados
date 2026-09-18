@@ -1,13 +1,15 @@
 import { afterEach, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { dependenciasEstoque } from "../../../src/database/salus/estoque/deps";
+import { runWithEstoqueTenant } from "../../src/database/config/estoque/estoqueTenant";
+import { dependenciasEstoque } from "../../src/database/estoque/deps";
 import {
     listar,
     listarPaginado,
     montarFiltroLista,
     parsePaginacao,
-} from "../../../src/database/salus/estoque/crud";
-import { recursoPorTabela } from "../../../src/database/salus/estoque/schema";
+} from "../../src/database/estoque/crud";
+import { recursoPorTabela } from "../../src/database/estoque/schema";
+import { CONFIG_ESTOQUE_TESTE } from "../helpers/http";
 
 const originais = { ...dependenciasEstoque };
 
@@ -175,7 +177,7 @@ describe("listar estoque", () => {
         });
     });
 
-    test("listar medicos/pacientes usa database_id direto e não descobre na página", async () => {
+    test("listar medicos/pacientes usa database_id do tenant e não descobre na página", async () => {
         let buscouPagina = false;
         const endpoints: string[] = [];
         dependenciasEstoque.buscarTabelasBanco = async () => {
@@ -187,11 +189,19 @@ describe("listar estoque", () => {
             return { results: [], has_more: false };
         };
 
-        await listar("medicos", { limit: "10" });
-        await listar("pacientes", { limit: "10" });
+        await runWithEstoqueTenant(CONFIG_ESTOQUE_TESTE, async () => {
+            await listar("medicos", { limit: "10" });
+            await listar("pacientes", { limit: "10" });
+        });
 
         assert.equal(buscouPagina, false);
-        assert.equal(endpoints[0], "databases/38a461445769809a9b05d0e6fc5e50dd/query");
-        assert.equal(endpoints[1], "databases/38a46144576980fea4b6d19fd96bff8d/query");
+        assert.equal(
+            endpoints[0],
+            `databases/${CONFIG_ESTOQUE_TESTE.medicos_database_id}/query`
+        );
+        assert.equal(
+            endpoints[1],
+            `databases/${CONFIG_ESTOQUE_TESTE.pacientes_database_id}/query`
+        );
     });
 });

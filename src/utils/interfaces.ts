@@ -128,9 +128,9 @@ export interface ConfigEstoquePorDominio {
     pacientes_database_id: string;
 }
 
-export interface SalusEstoqueTipoProcedimento { id: string; nome: string; }
-export interface SalusEstoqueMaterial { id: string; nome: string; codigo: string; }
-export interface SalusEstoqueFornecedor {
+export interface EstoqueTipoProcedimento { id: string; nome: string; }
+export interface EstoqueMaterial { id: string; nome: string; codigo: string; }
+export interface EstoqueFornecedor {
     id: string;
     nome: string;
     contato: string;
@@ -139,30 +139,30 @@ export interface SalusEstoqueFornecedor {
     obs: string;
     ativo: boolean;
 }
-export interface SalusEstoqueCompra { id: string; data_hora: string; obs: string; }
-export interface SalusEstoqueItemCompra {
+export interface EstoqueCompra { id: string; data_hora: string; obs: string; }
+export interface EstoqueItemCompra {
     id: string;
     compra: string;
     material: string;
     fornecedor: string;
     quantidade: number;
 }
-export interface SalusEstoqueKit { id: string; nome: string; tipo_procedimento: string; }
-export interface SalusEstoqueKitMaterial {
+export interface EstoqueKit { id: string; nome: string; tipo_procedimento: string; }
+export interface EstoqueKitMaterial {
     id: string;
     kit: string;
     material: string;
     quantidade: number;
 }
-export interface SalusEstoqueMedico { id: string; nome: string; especialidade: string; }
-export interface SalusEstoquePaciente {
+export interface EstoqueMedico { id: string; nome: string; especialidade: string; }
+export interface EstoquePaciente {
     id: string;
     nome: string;
     cpf: string;
     id_unico: string;
     telefone: string;
 }
-export interface SalusEstoqueRegistro {
+export interface EstoqueRegistro {
     id: string;
     data_hora: string;
     tipo_procedimento: string;
@@ -171,19 +171,19 @@ export interface SalusEstoqueRegistro {
     quantidade: number;
     obs: string;
 }
-export interface SalusEstoqueKitRegistro {
+export interface EstoqueKitRegistro {
     id: string;
     registro: string;
     kit: string;
     quantidade: number;
 }
-export interface SalusEstoqueMaterialRegistro {
+export interface EstoqueMaterialRegistro {
     id: string;
     registro: string;
     material: string;
     quantidade: number;
 }
-export interface SalusEstoqueSaldo {
+export interface EstoqueSaldo {
     id: string;
     material: string;
     quantidade: number;

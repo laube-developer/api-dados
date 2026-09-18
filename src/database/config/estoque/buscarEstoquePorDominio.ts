@@ -138,18 +138,3 @@ export async function buscarConfigEstoquePorDominio(
     const rows = await listarConfigsEstoque();
     return rows.find((row) => row.dominio === dominio) ?? null;
 }
-
-export function isHostLocalEstoque(hostname: string): boolean {
-    const host = hostname.trim().toLowerCase();
-    if (!host) return true;
-    if (
-        host === "localhost" ||
-        host === "127.0.0.1" ||
-        host === "0.0.0.0" ||
-        host === "::1"
-    ) {
-        return true;
-    }
-    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true;
-    return false;
-}
