@@ -1,4 +1,4 @@
-import { estoqueTenantAtual } from "../../config/estoque/estoqueTenant";
+import { estoqueTenantAtual } from "../config/estoque/estoqueTenant";
 import { dependenciasEstoque } from "./deps";
 import { ErroNaoEncontrado } from "./erros";
 import { jsonParaProperties, paginaParaJson, validarCorpo, type RegistroEstoque } from "./mapear";
@@ -20,22 +20,16 @@ const LIMIT_MAX = 100;
 
 export function idDiretoDaTabela(recurso: RecursoSchema): string | undefined {
     const tenant = estoqueTenantAtual();
-    if (tenant) {
-        if (recurso.tabela === "medicos") {
-            return tenant.medicos_database_id.trim() || undefined;
-        }
-        if (recurso.tabela === "pacientes") {
-            return tenant.pacientes_database_id.trim() || undefined;
-        }
+    if (!tenant) {
+        return undefined;
     }
-    if (recurso.databaseIdEnv) {
-        const fromEnv = String(process.env[recurso.databaseIdEnv] ?? "").trim();
-        if (fromEnv) {
-            return fromEnv;
-        }
+    if (recurso.tabela === "medicos") {
+        return tenant.medicos_database_id.trim() || undefined;
     }
-    const padrao = recurso.databaseId?.trim();
-    return padrao || undefined;
+    if (recurso.tabela === "pacientes") {
+        return tenant.pacientes_database_id.trim() || undefined;
+    }
+    return undefined;
 }
 
 async function idTabela(nome: string): Promise<string> {

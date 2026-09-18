@@ -3,7 +3,7 @@ import { runWithBaseDeDadosId } from "./database/notion";
 import { responderErro } from "./utils/respostas";
 import { bearerAuth } from "./middlewares/auth";
 import { rotasDados } from "./routes/dados";
-import { estoqueRouter } from "./routes/salus/estoque";
+import { estoqueRouter } from "./routes/estoque";
 
 export function criarApp() {
     const app = express();
@@ -23,7 +23,7 @@ export function criarApp() {
      * Rotas de dados
      */
     app.use(rotasDados);
-    app.use("/salus/estoque", estoqueRouter);
+    app.use("/estoque", estoqueRouter);
 
     app.use((req: express.Request, res: express.Response) => {
         return responderErro(res, "Rota não encontrada", 404);

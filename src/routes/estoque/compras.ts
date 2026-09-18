@@ -1,8 +1,8 @@
 import type { Router } from "express";
-import { ErroValidacao } from "../../../database/salus/estoque/erros";
-import type { RegistroEstoque } from "../../../database/salus/estoque/mapear";
-import { servicosEstoque } from "../../../database/salus/estoque/servicos";
-import { responderSucesso } from "../../../utils/respostas";
+import { ErroValidacao } from "../../database/estoque/erros";
+import type { RegistroEstoque } from "../../database/estoque/mapear";
+import { servicosEstoque } from "../../database/estoque/servicos";
+import { responderSucesso } from "../../utils/respostas";
 import { tratar } from "./errosHttp";
 
 function validarItens(itens: unknown): { material: string; fornecedor: string; quantidade: number }[] {

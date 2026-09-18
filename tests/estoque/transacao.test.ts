@@ -1,15 +1,22 @@
 import { after, afterEach, before, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { criarApp } from "../../../src/app";
-import { servicosEstoque } from "../../../src/database/salus/estoque/servicos";
-import { comRetry, ehErroTransitorio, transacaoConfig } from "../../../src/database/salus/estoque/transacao";
-import { ErroValidacao } from "../../../src/database/salus/estoque/erros";
-import { TOKEN_TESTE, chamar, subirServidor } from "../../helpers/http";
+import { criarApp } from "../../src/app";
+import { servicosEstoque } from "../../src/database/estoque/servicos";
+import { comRetry, ehErroTransitorio, transacaoConfig } from "../../src/database/estoque/transacao";
+import { ErroValidacao } from "../../src/database/estoque/erros";
+import { dependenciasEstoque } from "../../src/database/estoque/deps";
+import {
+    TOKEN_TESTE,
+    chamar,
+    subirServidor,
+    CONFIG_ESTOQUE_TESTE,
+    comDominioEstoque,
+} from "../helpers/http";
 
 process.env.AUTH_TOKEN = TOKEN_TESTE;
-process.env.NOTION_SALUS_DATABASE_PAGE_ID = "page-salus-teste";
 
 const originais = { ...servicosEstoque };
+const depsOriginais = { ...dependenciasEstoque };
 const delaysOriginais = { ...transacaoConfig };
 
 describe("transacao (retry + compensação)", () => {
@@ -56,6 +63,8 @@ describe("transacao (retry + compensação)", () => {
         beforeEach(() => {
             arquivados = [];
             seq = 0;
+            Object.assign(dependenciasEstoque, depsOriginais);
+            dependenciasEstoque.buscarConfigEstoquePorDominio = async () => CONFIG_ESTOQUE_TESTE;
             Object.assign(servicosEstoque, originais);
             servicosEstoque.adicionar = async (tabela, dados) => {
                 seq += 1;
@@ -73,6 +82,7 @@ describe("transacao (retry + compensação)", () => {
 
         afterEach(() => {
             Object.assign(servicosEstoque, originais);
+            Object.assign(dependenciasEstoque, depsOriginais);
         });
 
         test("saldo falha 2x e passa na 3ª → 201 e compra não arquivada", async () => {
@@ -85,7 +95,7 @@ describe("transacao (retry + compensação)", () => {
                 return { id: "est-1", material, quantidade, nome: "Gaze" };
             };
 
-            const res = await chamar(url, "POST", "/salus/estoque/compras", {
+            const res = await chamar(url, "POST", comDominioEstoque("/estoque/compras"), {
                 body: {
                     data_hora: "2026-09-03T10:00:00",
                     itens: [{ material: "mat-1", fornecedor: "forn-1", quantidade: 10 }],
@@ -101,7 +111,7 @@ describe("transacao (retry + compensação)", () => {
                 throw new Error("Falha na API do Notion [500]: timeout");
             };
 
-            const res = await chamar(url, "POST", "/salus/estoque/compras", {
+            const res = await chamar(url, "POST", comDominioEstoque("/estoque/compras"), {
                 body: {
                     data_hora: "2026-09-03T10:00:00",
                     itens: [{ material: "mat-1", fornecedor: "forn-1", quantidade: 10 }],
@@ -125,7 +135,7 @@ describe("transacao (retry + compensação)", () => {
                 throw new Error("Falha na API do Notion [500]: saldo");
             };
 
-            const res = await chamar(url, "POST", "/salus/estoque/compras", {
+            const res = await chamar(url, "POST", comDominioEstoque("/estoque/compras"), {
                 body: {
                     data_hora: "2026-09-03T10:00:00",
                     itens: [{ material: "mat-1", fornecedor: "forn-1", quantidade: 10 }],
@@ -142,7 +152,7 @@ describe("transacao (retry + compensação)", () => {
                 throw new Error("Falha na API do Notion [500]: timeout");
             };
 
-            const res = await chamar(url, "POST", "/salus/estoque/registros", {
+            const res = await chamar(url, "POST", comDominioEstoque("/estoque/registros"), {
                 body: {
                     data_hora: "2026-09-03T11:00:00",
                     tipo_procedimento: "tp-1",

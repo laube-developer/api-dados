@@ -4,6 +4,27 @@ import type { Express } from "express";
 
 export const TOKEN_TESTE = "token-teste";
 
+export const DOMINIO_ESTOQUE_TESTE = "estoque.teste.com.br";
+
+export const CONFIG_ESTOQUE_TESTE = {
+    dominio: DOMINIO_ESTOQUE_TESTE,
+    clinica: {
+        id: "clinica-teste",
+        nome: "Teste",
+        base_de_dados_id: "base-teste",
+        whatsapp: "",
+    },
+    estoque_database_page_id: "page-estoque-teste",
+    medicos_database_id: "db-medicos-teste",
+    pacientes_database_id: "db-pacientes-teste",
+};
+
+/** Acrescenta `?dominio=` (ou `&dominio=`) para as rotas `/estoque/*`. */
+export function comDominioEstoque(path: string): string {
+    const join = path.includes("?") ? "&" : "?";
+    return `${path}${join}dominio=${DOMINIO_ESTOQUE_TESTE}`;
+}
+
 export async function subirServidor(app: Express): Promise<{ url: string; fechar: () => Promise<void> }> {
     const server: Server = await new Promise((resolve, reject) => {
         const s = app.listen(0, "127.0.0.1", () => resolve(s));

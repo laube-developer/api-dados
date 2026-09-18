@@ -1,18 +1,25 @@
 import { after, afterEach, before, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { criarApp } from "../../../src/app";
-import { ErroSaldoInsuficiente } from "../../../src/database/salus/estoque/erros";
-import { servicosEstoque } from "../../../src/database/salus/estoque/servicos";
-import { transacaoConfig } from "../../../src/database/salus/estoque/transacao";
-import { TOKEN_TESTE, chamar, subirServidor } from "../../helpers/http";
+import { criarApp } from "../../src/app";
+import { ErroSaldoInsuficiente } from "../../src/database/estoque/erros";
+import { servicosEstoque } from "../../src/database/estoque/servicos";
+import { transacaoConfig } from "../../src/database/estoque/transacao";
+import { dependenciasEstoque } from "../../src/database/estoque/deps";
+import {
+    TOKEN_TESTE,
+    chamar,
+    subirServidor,
+    CONFIG_ESTOQUE_TESTE,
+    comDominioEstoque,
+} from "../helpers/http";
 
 process.env.AUTH_TOKEN = TOKEN_TESTE;
-process.env.NOTION_SALUS_DATABASE_PAGE_ID = "page-salus-teste";
 
 const originais = { ...servicosEstoque };
+const depsOriginais = { ...dependenciasEstoque };
 const delaysOriginais = { ...transacaoConfig };
 
-describe("rotas /salus/estoque", () => {
+describe("rotas /estoque", () => {
     let url = "";
     let fechar: () => Promise<void> = async () => undefined;
     let incrementos: { material: string; quantidade: number }[] = [];
@@ -36,6 +43,8 @@ describe("rotas /salus/estoque", () => {
         incrementos = [];
         baixas = [];
         seq = 0;
+        Object.assign(dependenciasEstoque, depsOriginais);
+        dependenciasEstoque.buscarConfigEstoquePorDominio = async () => CONFIG_ESTOQUE_TESTE;
         Object.assign(servicosEstoque, originais);
         servicosEstoque.listar = async () => [{ id: "mat-1", nome: "Gaze", codigo: "GZ" }];
         servicosEstoque.listarPaginado = async () => ({
@@ -69,31 +78,47 @@ describe("rotas /salus/estoque", () => {
 
     afterEach(() => {
         Object.assign(servicosEstoque, originais);
+        Object.assign(dependenciasEstoque, depsOriginais);
     });
 
     test("GET /materiais sem token retorna 401", async () => {
-        const res = await chamar(url, "GET", "/salus/estoque/materiais", { token: null });
+        const res = await chamar(url, "GET", "/estoque/materiais", { token: null });
         assert.equal(res.status, 401);
         assert.equal(res.json.sucesso, false);
     });
 
+    test("GET /materiais sem dominio retorna 400", async () => {
+        const res = await chamar(url, "GET", "/estoque/materiais");
+        assert.equal(res.status, 400);
+        assert.equal(res.json.sucesso, false);
+        assert.match(res.json.erro, /dominio é obrigatório/i);
+    });
+
+    test("GET /materiais com dominio desconhecido retorna 404", async () => {
+        dependenciasEstoque.buscarConfigEstoquePorDominio = async () => null;
+        const res = await chamar(url, "GET", "/estoque/materiais?dominio=nao-existe.example");
+        assert.equal(res.status, 404);
+        assert.equal(res.json.sucesso, false);
+        assert.match(res.json.erro, /Domínio de estoque não encontrado/i);
+    });
+
     test("CRUD materiais", async () => {
-        const lista = await chamar(url, "GET", "/salus/estoque/materiais");
+        const lista = await chamar(url, "GET", comDominioEstoque("/estoque/materiais"));
         assert.equal(lista.status, 200);
         assert.equal(lista.json.sucesso, true);
         assert.equal(lista.json.dados[0].nome, "Gaze");
 
-        const um = await chamar(url, "GET", "/salus/estoque/materiais/mat-1");
+        const um = await chamar(url, "GET", comDominioEstoque("/estoque/materiais/mat-1"));
         assert.equal(um.status, 200);
         assert.equal(um.json.dados.id, "mat-1");
 
-        const criado = await chamar(url, "POST", "/salus/estoque/materiais", {
+        const criado = await chamar(url, "POST", comDominioEstoque("/estoque/materiais"), {
             body: { nome: "Luva", codigo: "LV" },
         });
         assert.equal(criado.status, 201);
         assert.equal(criado.json.dados.nome, "Luva");
 
-        const patch = await chamar(url, "PATCH", "/salus/estoque/materiais/mat-1", {
+        const patch = await chamar(url, "PATCH", comDominioEstoque("/estoque/materiais/mat-1"), {
             body: { codigo: "GZ-2" },
         });
         assert.equal(patch.status, 200);
@@ -105,14 +130,14 @@ describe("rotas /salus/estoque", () => {
             itens: [{ id: "mat-1", nome: "Gaze", codigo: "GZ" }],
             paginacao: { page: 1, limit: 10, has_more: true },
         });
-        const lista = await chamar(url, "GET", "/salus/estoque/materiais?limit=10&page=1");
+        const lista = await chamar(url, "GET", comDominioEstoque("/estoque/materiais?limit=10&page=1"));
         assert.equal(lista.status, 200);
         assert.deepEqual(lista.json.paginacao, { page: 1, limit: 10, has_more: true });
         assert.equal(lista.json.dados.length, 1);
     });
 
     test("POST compras com itens chama incremento", async () => {
-        const res = await chamar(url, "POST", "/salus/estoque/compras", {
+        const res = await chamar(url, "POST", comDominioEstoque("/estoque/compras"), {
             body: {
                 data_hora: "2026-09-03T10:00:00",
                 obs: "",
@@ -127,7 +152,7 @@ describe("rotas /salus/estoque", () => {
     });
 
     test("POST registro com kit chama baixa", async () => {
-        const res = await chamar(url, "POST", "/salus/estoque/registros", {
+        const res = await chamar(url, "POST", comDominioEstoque("/estoque/registros"), {
             body: {
                 data_hora: "2026-09-03T11:00:00",
                 tipo_procedimento: "tp-1",
@@ -150,7 +175,7 @@ describe("rotas /salus/estoque", () => {
             adicionou = true;
             return { id: "x" };
         };
-        const res = await chamar(url, "POST", "/salus/estoque/registros", {
+        const res = await chamar(url, "POST", comDominioEstoque("/estoque/registros"), {
             body: {
                 data_hora: "2026-09-03T11:00:00",
                 tipo_procedimento: "tp-1",

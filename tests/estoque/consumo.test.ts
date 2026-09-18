@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { somarConsumo } from "../../../src/database/salus/estoque/consumo";
+import { somarConsumo } from "../../src/database/estoque/consumo";
 
 const bom = [
     { kit: "kit-a", material: "gaze", quantidade: 2 },
