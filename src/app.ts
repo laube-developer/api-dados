@@ -1,5 +1,6 @@
 import express from "express";
 import { runWithBaseDeDadosId } from "./database/notion";
+import { buscarClinicaPorId } from "./database/config/clinicas/buscarClinica";
 import { responderErro } from "./utils/respostas";
 import { bearerAuth } from "./middlewares/auth";
 import { rotasDados } from "./routes/dados";
@@ -10,13 +11,32 @@ export function criarApp() {
 
     app.use(express.json());
     app.use(bearerAuth);
-    app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-        const baseId = String(req.headers["x-base-de-dados-id"] ?? "").trim();
-        if (!baseId) {
+    app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        try {
+            const baseId = String(req.headers["x-base-de-dados-id"] ?? "").trim();
+            const clinicaId = String(req.headers["x-clinica-id"] ?? "").trim();
+
+            if (baseId) {
+                runWithBaseDeDadosId(baseId, () => next());
+                return;
+            }
+
+            if (clinicaId) {
+                const clinica = await buscarClinicaPorId(clinicaId);
+                if (!clinica) {
+                    return responderErro(res, "Clínica não encontrada.", 404);
+                }
+                if (!clinica.base_de_dados_id) {
+                    return responderErro(res, "Clínica sem base_de_dados_id configurada.", 422);
+                }
+                runWithBaseDeDadosId(clinica.base_de_dados_id, () => next());
+                return;
+            }
+
             next();
-            return;
+        } catch (error) {
+            next(error);
         }
-        runWithBaseDeDadosId(baseId, () => next());
     });
 
     /**

@@ -60,7 +60,12 @@ async function reporConsumo(consumo: { material: string; quantidade: number }[])
 export function registrarRegistros(router: Router) {
     router.post("/registros", tratar(async (req, res) => {
         const body = req.body ?? {};
-        const { kits, materiais, ...dados } = body;
+        const { kits, materiais, ...restante } = body;
+        const dados = {
+            data_hora: restante.data_hora,
+            paciente: restante.paciente,
+            medico: restante.medico,
+        };
         const kitsValidos = validarKits(kits);
         const materiaisValidos = validarMateriais(materiais);
 

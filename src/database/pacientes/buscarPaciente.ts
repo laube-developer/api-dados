@@ -1,5 +1,5 @@
 import type * as interfaces from "../../utils/interfaces.js";
-import { buscarTabelasBanco, chamarNotionAPI } from "../notion.js";
+import { buscarTabelasBanco, queryNotionTodasPaginas } from "../notion.js";
 
 function normalizarDigitos(valor: string): string {
     return valor.replace(/\D/g, "");
@@ -66,9 +66,9 @@ export async function buscarPaciente(cpfOrName: string): Promise<interfaces.Paci
         });
     }
 
-    const resultadoQuery = await chamarNotionAPI(`databases/${tabelaPacientes.id}/query`, "POST", {
-        filter: filtros.length === 1 ? filtros[0] : { or: filtros }
+    const paginas = await queryNotionTodasPaginas(tabelaPacientes.id, {
+        filter: filtros.length === 1 ? filtros[0] : { or: filtros },
     });
 
-    return (resultadoQuery.results || []).map(mapearPaginaParaPaciente);
+    return paginas.map(mapearPaginaParaPaciente);
 }

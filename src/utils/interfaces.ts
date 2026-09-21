@@ -98,11 +98,16 @@ export interface CronIntegracao {
 export interface CronTable {
     name: string;
     clinica: CronClinica;
-    metadata: string;
-    cron_rule: string;
     integracao: CronIntegracao;
     chave_segura: string;
     botconversa_msg_url: string;
+    cron: string;
+    tipo_antecedencia: string;
+    antecedencia: number;
+    tipo_dia: string;
+    unidades: string;
+    medicos: string;
+    ativo: boolean;
 }
 
 /** Página da tabela `clinicas` no Notion. `id` = id da page. */

@@ -19,6 +19,16 @@ Variáveis de ambiente necessárias (arquivo `.env.local`):
 | `NOTION_DATABASE_PAGE_ID` | ID da página mãe "Base de dados" (rotas clínicas `/*`; **fallback** se não vier `x-base-de-dados-id`) |
 | `AUTH_TOKEN` | Token Bearer |
 | `NOTION_API_URL` | URL base da API Notion |
+| `REDIS_URL` | Redis do cache de config Notion (padrão `redis://127.0.0.1:6379`). Horário comercial SP (8h–18h): TTL 3 min. Fora: TTL 1 h. Só busca na Notion no request (cache miss); não há job que revalide sozinho. |
+| `REDIS_PASSWORD` | Se o Redis exige senha (`--requirepass` no `docker-compose.dev.yml` do totem) e a URL não traz `:@senha@`, a api-dados inclui essa senha na conexão. |
+
+Tenant das tabelas da clínica: `X-Base-De-Dados-Id` **ou** `X-Clinica-Id` (resolve `clinicas.base_de_dados_id`). Sem os dois, cai no `NOTION_DATABASE_PAGE_ID` do ambiente.
+
+`GET /integracaoClinica`: cada linha da Notion é uma integração completa. Mesmo nome (ex. duas linhas “AmigoApp”) **não** mistura chave de uma com unidades da outra. Uma linha → objeto; várias → array. Query `integracao` filtra pelo nome.
+
+Queries de database e `blocks/.../children` **paginam até `has_more` ser falso** (100 por página). `GET /buscarTableCron` percorre todas as linhas; falha numa linha **não** derruba as outras.
+
+**Pendência (estoque):** `GET /estoquePorDominio` ainda não pagina além de 100 nem usa Redis. Fazer na leva de estoque.
 
 ---
 
@@ -409,7 +419,7 @@ Namespace do app de estoque. Exige domínio (`?dominio=`, `x-estoque-dominio` ou
 | `/estoque/kits-materiais` | `kits_materiais` | `id`, `material`, `kit`, `quantidade` |
 | `/estoque/medicos` | `medicos` | `id`, `nome`, `especialidade` |
 | `/estoque/pacientes` | `pacientes` | `id`, `nome`, `cpf`, `id_unico`, `telefone` |
-| `/estoque/registros` | `registros` | `id`, `data_hora`, `tipo_procedimento`, `paciente`, `medico`, `quantidade`, `obs` |
+| `/estoque/registros` | `registros` | `id`, `data_hora`, `paciente`, `medico`. Tipo/obs/quantidade do atendimento **não** existem nessa tabela; consumo vai em `kits_registro` e `materiais_registro`. |
 | `/estoque/kits-registro` | `kits_registro` | `id`, `registro`, `kit`, `quantidade` |
 | `/estoque/materiais-registro` | `materiais_registro` | `id`, `registro`, `material`, `quantidade` |
 | `/estoque/estoque` | `estoque` | `id`, `material`, `quantidade`, `nome` (saldo) |
@@ -550,7 +560,7 @@ A API descobre as tabelas dinamicamente pelo nome na página mãe. Nomes esperad
 | `kits_materiais` | `material`, `kit`, `quantidade` |
 | `medicos` | `nome` (Title), `especialidade` (linked view) |
 | `pacientes` | `nome` (Title), `cpf`, `id_unico`, `telefone` (tabela-fonte; linked view na página de estoque) |
-| `registros` | `data_hora`, `tipo_procedimento`, `paciente`, `medico`, `quantidade`, `obs` |
+| `registros` | `data_hora`, `paciente`, `medico` (`nome` dummy). Consumo: `kits_registro` (`registro`, `kit`, `quantidade`, `nome`) e `materiais_registro` (`registro`, `material`, `quantidade`, `nome`) |
 | `kits_registro` | `registro`, `kit`, `quantidade` |
 | `materiais_registro` | `registro`, `material`, `quantidade` |
 | `estoque` | `material`, `quantidade`, `nome` |
