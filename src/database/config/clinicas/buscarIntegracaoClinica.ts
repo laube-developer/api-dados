@@ -63,6 +63,7 @@ export type IntegracaoDaClinica = {
     callback_remarcar: string;
     /** Após o paciente cancelar. */
     callback_cancelar: string;
+    unidades_exibidas: string
 };
 
 function mapearLinha(row: any): Omit<IntegracaoDaClinica, "integracao"> & {
@@ -96,6 +97,11 @@ function mapearLinha(row: any): Omit<IntegracaoDaClinica, "integracao"> & {
                 "botconversa_cancelar_url",
             ])
         ),
+        unidades_exibidas: texto(
+            propPorNome(props, [
+                "unidades_exibidas",
+            ])
+        )
     };
 }
 
@@ -138,6 +144,7 @@ export async function buscarIntegracaoClinica(
     let callback_confirmar = "";
     let callback_remarcar = "";
     let callback_cancelar = "";
+    let unidades_exibidas = "";
 
     for (const row of rows) {
         if (row?.archived) continue;
@@ -160,6 +167,10 @@ export async function buscarIntegracaoClinica(
             callback_cancelar,
             linha.callback_cancelar
         );
+        unidades_exibidas = primeiroPreenchido(
+            unidades_exibidas,
+            linha.unidades_exibidas
+        );
     }
 
     let integracaoNome = "";
@@ -179,5 +190,6 @@ export async function buscarIntegracaoClinica(
         callback_confirmar,
         callback_remarcar,
         callback_cancelar,
+        unidades_exibidas
     };
 }
