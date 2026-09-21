@@ -5,7 +5,18 @@ import { servicosEstoque } from "../../database/estoque/servicos";
 import { responderSucesso } from "../../utils/respostas";
 import { tratar } from "./errosHttp";
 
-function validarItens(itens: unknown): { material: string; fornecedor: string; quantidade: number }[] {
+function validarCusto(valor: unknown, indice: number): number {
+    if (valor === undefined || valor === null || valor === "") {
+        return 0;
+    }
+    const custo = Number(valor);
+    if (!Number.isFinite(custo) || custo < 0) {
+        throw new ErroValidacao(`O item na posição ${indice} precisa de 'custo' ≥ 0 (custo total do lote).`);
+    }
+    return Math.round(custo * 100) / 100;
+}
+
+function validarItens(itens: unknown): { material: string; fornecedor: string; quantidade: number; custo: number }[] {
     if (!Array.isArray(itens)) {
         throw new ErroValidacao("O campo 'itens' deve ser um array.");
     }
@@ -25,14 +36,19 @@ function validarItens(itens: unknown): { material: string; fornecedor: string; q
         if (typeof quantidade !== "number" || !Number.isInteger(quantidade) || quantidade < 0) {
             throw new ErroValidacao(`O item na posição ${indice} precisa de 'quantidade' inteiro ≥ 0.`);
         }
-        return { material, fornecedor, quantidade };
+        return {
+            material,
+            fornecedor,
+            quantidade,
+            custo: validarCusto((item as any).custo, indice),
+        };
     });
 }
 
 export function registrarCompras(router: Router) {
     router.post("/compras", tratar(async (req, res) => {
         const body = req.body ?? {};
-        const { itens, ...dados } = body;
+        const { itens, custo: _custoCompra, ...dados } = body;
         if (itens === undefined || (Array.isArray(itens) && itens.length === 0)) {
             const compra = await servicosEstoque.adicionar("compras", dados);
             return responderSucesso(res, compra, 201);

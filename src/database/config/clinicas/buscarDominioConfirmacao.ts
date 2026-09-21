@@ -1,5 +1,6 @@
 import type * as interfaces from "../../../utils/interfaces.js";
-import { chamarNotionAPI } from "../../notion.js";
+import { queryNotionTodasPaginas } from "../../notion.js";
+import { comCache } from "../../redisCache.js";
 import {
     buscarClinicaPorId,
     ErroValidacaoClinica,
@@ -7,7 +8,6 @@ import {
 
 /** Tabela Notion `dominios_confirmacao`: dominio → relação `clinica`. */
 const DOMINIOS_CONFIRMACAO_ID = "3dc461445769809785f3c86883371f58";
-const TTL_CACHE_MS = 5 * 60 * 1000;
 
 function relationIds(prop: any): string[] {
     if (prop?.type !== "relation" || !Array.isArray(prop.relation)) return [];
@@ -68,33 +68,22 @@ function mapearLinhaDominio(page: any): { dominio: string; clinicaId: string } |
     return { dominio, clinicaId };
 }
 
-let cacheDominios: { expiraEm: number; rows: interfaces.DominioConfirmacao[] } | null = null;
-
 async function listarDominiosConfirmacao(): Promise<interfaces.DominioConfirmacao[]> {
-    const agora = Date.now();
-    if (cacheDominios && agora < cacheDominios.expiraEm) {
-        return cacheDominios.rows;
-    }
+    return comCache("api-dados:dominios-confirmacao", async () => {
+        const paginas = await queryNotionTodasPaginas(DOMINIOS_CONFIRMACAO_ID);
+        const rows: interfaces.DominioConfirmacao[] = [];
 
-    const resultado = await chamarNotionAPI(
-        `databases/${DOMINIOS_CONFIRMACAO_ID}/query`,
-        "POST",
-        { page_size: 100 }
-    );
-    const paginas = Array.isArray(resultado?.results) ? resultado.results : [];
-    const rows: interfaces.DominioConfirmacao[] = [];
+        for (const page of paginas) {
+            if (page?.archived) continue;
+            const linha = mapearLinhaDominio(page);
+            if (!linha) continue;
+            const clinica = await buscarClinicaPorId(linha.clinicaId);
+            if (!clinica) continue;
+            rows.push({ dominio: linha.dominio, clinica });
+        }
 
-    for (const page of paginas) {
-        if (page?.archived) continue;
-        const linha = mapearLinhaDominio(page);
-        if (!linha) continue;
-        const clinica = await buscarClinicaPorId(linha.clinicaId);
-        if (!clinica) continue;
-        rows.push({ dominio: linha.dominio, clinica });
-    }
-
-    cacheDominios = { expiraEm: agora + TTL_CACHE_MS, rows };
-    return rows;
+        return rows;
+    });
 }
 
 export async function buscarClinicaPorDominio(

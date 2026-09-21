@@ -149,7 +149,10 @@ function validarCampo(campo: CampoSchema, valor: unknown, presente: boolean): st
             }
             return null;
         case "number":
-            if (typeof valor !== "number" || !Number.isInteger(valor) || valor < 0) {
+            if (typeof valor !== "number" || !Number.isFinite(valor) || valor < 0) {
+                return `O campo '${campo.nome}' deve ser um número ≥ 0.`;
+            }
+            if (!campo.decimal && !Number.isInteger(valor)) {
                 return `O campo '${campo.nome}' deve ser um inteiro ≥ 0.`;
             }
             return null;

@@ -12,6 +12,7 @@ export interface CampoSchema {
     nome: string;
     tipo: TipoCampo;
     obrigatorioNoPost?: boolean;
+    decimal?: boolean;
 }
 
 export interface RecursoSchema {
@@ -25,8 +26,13 @@ export interface RecursoSchema {
     patchEspecial?: boolean;
 }
 
-function campo(nome: string, tipo: TipoCampo, obrigatorioNoPost = false): CampoSchema {
-    return { nome, tipo, obrigatorioNoPost };
+function campo(
+    nome: string,
+    tipo: TipoCampo,
+    obrigatorioNoPost = false,
+    decimal = false
+): CampoSchema {
+    return { nome, tipo, obrigatorioNoPost, decimal };
 }
 
 export const RECURSOS: RecursoSchema[] = [
@@ -68,7 +74,11 @@ export const RECURSOS: RecursoSchema[] = [
         titleDummy: true,
         temAtivo: false,
         postEspecial: true,
-        campos: [campo("nome", "title"), campo("data_hora", "date", true), campo("obs", "rich_text")],
+        campos: [
+            campo("nome", "title"),
+            campo("data_hora", "date", true),
+            campo("obs", "rich_text"),
+        ],
     },
     {
         tabela: "itens_compra",
@@ -84,6 +94,7 @@ export const RECURSOS: RecursoSchema[] = [
             campo("material", "relation", true),
             campo("fornecedor", "relation", true),
             campo("quantidade", "number", true),
+            campo("custo", "number", false, true),
         ],
     },
     {
@@ -138,10 +149,8 @@ export const RECURSOS: RecursoSchema[] = [
         campos: [
             campo("nome", "title"),
             campo("data_hora", "date", true),
-            campo("tipo_procedimento", "relation", true),
             campo("paciente", "relation", true),
             campo("medico", "relation", true),
-            campo("obs", "rich_text"),
         ],
     },
     {

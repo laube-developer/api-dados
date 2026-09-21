@@ -86,11 +86,11 @@ Paths e contratos iguais aos de produção. Tenant: `x-base-de-dados-id`.
 | POST | `/adicionarAgenda` | Cria agenda (201) |
 | PATCH | `/atualizarAgendas` | Atualiza agendas |
 | POST | `/reverterSincronizacao` | Reverte sincronização |
-| GET | `/buscarTableCron` | Tabelas de cron |
+| GET | `/buscarTableCron` | Jobs de confirmação (todas as páginas Notion; uma linha com erro é ignorada). Cada linha: `name`, `clinica`, `integracao`, `chave_segura`, `botconversa_msg_url`, `cron` (expressão), `tipo_antecedencia`, `antecedencia`, `tipo_dia`, `unidades` e `medicos` (texto com ids separados por vírgula), `ativo`. Sem `metadata` / `cron_rule`. Cache Redis (3 min 8h–18h SP; 1 h fora). |
 | GET | `/clinicas` | Lista clínicas |
 | GET | `/clinica` | Por `id` |
 | GET | `/clinicaPorDominio` | Por `dominio` (tabela Notion `dominios_confirmacao`, id `3dc461445769809785f3c86883371f58`). `dados`: `{ dominio, clinica: { id, nome, base_de_dados_id } }`. 400 se `dominio` vazio; 404 se não houver linha |
-| GET | `/integracaoClinica` | Por `clinicaId` / `clinica_id`. `dados`: `{ integracao, chave_segura, botconversa_msg_url, callback_confirmar, callback_remarcar, callback_cancelar }`. 404 se não houver linha |
+| GET | `/integracaoClinica` | Por `clinicaId` / `clinica_id` (opcional `integracao` = nome). Cada linha Notion é um objeto completo; não mistura campos entre linhas nem quando o nome da integração é o mesmo. 1 linha → objeto; 2+ → array. Headers de tenant: `X-Base-De-Dados-Id` ou `X-Clinica-Id`. |
 | GET | `/estoquePorDominio` | Por `dominio` (tabela Notion `gestao > estoque`, id `3db4614457698097ba8ef1c82e5ddee9`). `dados`: `{ dominio, clinica, estoque_database_page_id, medicos_database_id, pacientes_database_id }` |
 
 ---

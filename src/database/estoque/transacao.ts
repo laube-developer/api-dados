@@ -78,6 +78,13 @@ export async function executarComCompensacao<T>(opcoes: {
             console.error(compErr);
             throw new ErroCompensacaoPendente(opcoes.pendencias?.() ?? []);
         }
-        throw new ErroOperacaoNaoConcluida();
+        if (error instanceof ErroSaldoInsuficiente) {
+            throw error;
+        }
+        const detalhe = error instanceof Error ? error.message : String(error);
+        console.error(`[estoque] operação revertida: ${detalhe}`);
+        throw new ErroOperacaoNaoConcluida(
+            `Não foi possível concluir a operação. O estado foi revertido. ${detalhe}`
+        );
     }
 }

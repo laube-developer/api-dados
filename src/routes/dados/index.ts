@@ -530,7 +530,13 @@ rotasDados.get("/integracaoClinica", async (req: express.Request, res: express.R
         const clinicaId = String(
             req.query.clinicaId ?? req.query.clinica_id ?? ""
         ).trim();
-        const dados = await dependenciasDados.buscarIntegracaoClinica(clinicaId);
+        const integracaoNome = String(
+            req.query.integracao ?? req.query.integracao_nome ?? ""
+        ).trim();
+        const dados = await dependenciasDados.buscarIntegracaoClinica(
+            clinicaId,
+            integracaoNome
+        );
 
         if (!dados) {
             return responderErro(res, "Integração da clínica não encontrada", 404);

@@ -1,4 +1,5 @@
-import { chamarNotionAPI } from "../../notion.js";
+import { chamarNotionAPI, queryNotionTodasPaginas } from "../../notion.js";
+import { comCache } from "../../redisCache.js";
 import { ErroValidacaoClinica } from "./buscarClinica.js";
 
 const INTEGRACOES_CLINICAS_ID = "3ca46144576980d9a217c1ef041fe47c";
@@ -64,6 +65,7 @@ export type IntegracaoDaClinica = {
     /** Após o paciente cancelar. */
     callback_cancelar: string;
     unidades_exibidas: string
+    medicos_agendamentos_exibidos: string;
 };
 
 function mapearLinha(row: any): Omit<IntegracaoDaClinica, "integracao"> & {
@@ -101,81 +103,24 @@ function mapearLinha(row: any): Omit<IntegracaoDaClinica, "integracao"> & {
             propPorNome(props, [
                 "unidades_exibidas",
             ])
+        ),
+        medicos_agendamentos_exibidos: texto(
+            propPorNome(props, [
+                "medicos",
+            ])
         )
     };
 }
 
-function primeiroPreenchido(...valores: string[]): string {
-    for (const valor of valores) {
-        const t = String(valor ?? "").trim();
-        if (t) return t;
-    }
-    return "";
+function normalizarNomeIntegracao(nome: string): string {
+    return String(nome ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-export async function buscarIntegracaoClinica(
-    clinicaId: string
-): Promise<IntegracaoDaClinica | null> {
-    const id = String(clinicaId ?? "").trim();
-    if (!id) {
-        throw new ErroValidacaoClinica("Parâmetro clinicaId é obrigatório.");
-    }
-
-    const join = await chamarNotionAPI(
-        `databases/${INTEGRACOES_CLINICAS_ID}/query`,
-        "POST",
-        {
-            filter: {
-                property: "clinica",
-                relation: { contains: id },
-            },
-            page_size: 100,
-        }
-    );
-
-    const rows = Array.isArray(join?.results) ? join.results : [];
-    if (rows.length === 0) {
-        return null;
-    }
-
-    let integracaoRelId = "";
-    let chave_segura = "";
-    let botconversa_msg_url = "";
-    let callback_confirmar = "";
-    let callback_remarcar = "";
-    let callback_cancelar = "";
-    let unidades_exibidas = "";
-
-    for (const row of rows) {
-        if (row?.archived) continue;
-        const linha = mapearLinha(row);
-        integracaoRelId = primeiroPreenchido(integracaoRelId, linha.integracaoRelId);
-        chave_segura = primeiroPreenchido(chave_segura, linha.chave_segura);
-        botconversa_msg_url = primeiroPreenchido(
-            botconversa_msg_url,
-            linha.botconversa_msg_url
-        );
-        callback_confirmar = primeiroPreenchido(
-            callback_confirmar,
-            linha.callback_confirmar
-        );
-        callback_remarcar = primeiroPreenchido(
-            callback_remarcar,
-            linha.callback_remarcar
-        );
-        callback_cancelar = primeiroPreenchido(
-            callback_cancelar,
-            linha.callback_cancelar
-        );
-        unidades_exibidas = primeiroPreenchido(
-            unidades_exibidas,
-            linha.unidades_exibidas
-        );
-    }
-
+async function montarIntegracao(row: any): Promise<IntegracaoDaClinica> {
+    const linha = mapearLinha(row);
     let integracaoNome = "";
-    if (integracaoRelId) {
-        const integPage = await chamarNotionAPI(`pages/${integracaoRelId}`, "GET", undefined, {
+    if (linha.integracaoRelId) {
+        const integPage = await chamarNotionAPI(`pages/${linha.integracaoRelId}`, "GET", undefined, {
             permitir404: true,
         });
         if (integPage) {
@@ -185,11 +130,61 @@ export async function buscarIntegracaoClinica(
 
     return {
         integracao: { name: integracaoNome },
-        chave_segura,
-        botconversa_msg_url,
-        callback_confirmar,
-        callback_remarcar,
-        callback_cancelar,
-        unidades_exibidas
+        chave_segura: linha.chave_segura,
+        botconversa_msg_url: linha.botconversa_msg_url,
+        callback_confirmar: linha.callback_confirmar,
+        callback_remarcar: linha.callback_remarcar,
+        callback_cancelar: linha.callback_cancelar,
+        unidades_exibidas: linha.unidades_exibidas,
+        medicos_agendamentos_exibidos: linha.medicos_agendamentos_exibidos,
     };
+}
+
+export async function buscarIntegracoesClinica(
+    clinicaId: string
+): Promise<IntegracaoDaClinica[]> {
+    const id = String(clinicaId ?? "").trim();
+    if (!id) {
+        throw new ErroValidacaoClinica("Parâmetro clinicaId é obrigatório.");
+    }
+
+    return comCache(`api-dados:integracao-clinica:${id}`, async () => {
+        const rows = await queryNotionTodasPaginas(INTEGRACOES_CLINICAS_ID, {
+            filter: {
+                property: "clinica",
+                relation: { contains: id },
+            },
+        });
+
+        const lista: IntegracaoDaClinica[] = [];
+        for (const row of rows) {
+            if (row?.archived) continue;
+            lista.push(await montarIntegracao(row));
+        }
+        return lista;
+    });
+}
+
+/** Uma linha inteira. Nome igual não mistura campos de outra linha. */
+export async function buscarIntegracaoClinica(
+    clinicaId: string,
+    integracaoNome = ""
+): Promise<IntegracaoDaClinica | IntegracaoDaClinica[] | null> {
+    const lista = await buscarIntegracoesClinica(clinicaId);
+    if (lista.length === 0) {
+        return null;
+    }
+
+    const filtro = normalizarNomeIntegracao(integracaoNome);
+    const escolhidas = filtro
+        ? lista.filter((item) => normalizarNomeIntegracao(item.integracao.name) === filtro)
+        : lista;
+
+    if (escolhidas.length === 0) {
+        return null;
+    }
+    if (escolhidas.length === 1) {
+        return escolhidas[0] ?? null;
+    }
+    return escolhidas;
 }
