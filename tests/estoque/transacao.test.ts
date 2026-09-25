@@ -75,6 +75,13 @@ describe("transacao (retry + compensação)", () => {
             };
             servicosEstoque.aplicarDeltaSaldo = async () => ({ id: "e", material: "m", quantidade: 0, nome: "" });
             servicosEstoque.calcularConsumo = async () => [{ material: "mat-1", quantidade: 2 }];
+            servicosEstoque.alocarConsumoPorLotes = async (consumo) =>
+                consumo.map((item) => ({
+                    material: item.material,
+                    quantidade: item.quantidade,
+                    item_compra: "lote-1",
+                    custo: 0,
+                }));
             servicosEstoque.garantirSaldos = async () => undefined;
             servicosEstoque.comRetry = originais.comRetry;
             servicosEstoque.executarComCompensacao = originais.executarComCompensacao;

@@ -51,6 +51,45 @@ async function baixarConsumo(consumo: { material: string; quantidade: number }[]
     }
 }
 
+async function gravarMateriaisPorLote(
+    registroId: string,
+    consumo: { material: string; quantidade: number }[],
+    criados: { tabela: string; id: string }[]
+): Promise<RegistroEstoque[]> {
+    const alocacoes = await servicosEstoque.alocarConsumoPorLotes(consumo);
+    const linhas: RegistroEstoque[] = [];
+    for (const fatia of alocacoes) {
+        if (fatia.quantidade <= 0) continue;
+        const dados: Record<string, unknown> = {
+            registro: registroId,
+            material: fatia.material,
+            quantidade: fatia.quantidade,
+            custo: fatia.custo,
+        };
+        if (fatia.item_compra) {
+            dados.item_compra = fatia.item_compra;
+        }
+        const linha = await servicosEstoque.adicionar("materiais_registro", dados);
+        criados.push({ tabela: "materiais_registro", id: String(linha.id) });
+        linhas.push(linha);
+    }
+    return linhas;
+}
+
+async function custoDoLote(itemCompra: string, quantidade: number): Promise<number> {
+    const loteId = itemCompra.trim();
+    if (!loteId || quantidade <= 0) return 0;
+    try {
+        const lote = await servicosEstoque.buscarPorId("itens_compra", loteId);
+        const qtdLote = typeof lote.quantidade === "number" ? lote.quantidade : 0;
+        const custoLote = typeof lote.custo === "number" ? lote.custo : 0;
+        if (qtdLote <= 0) return 0;
+        return Math.round((custoLote / qtdLote) * quantidade * 100) / 100;
+    } catch {
+        return 0;
+    }
+}
+
 async function reporConsumo(consumo: { material: string; quantidade: number }[]) {
     for (const item of [...consumo].reverse()) {
         await servicosEstoque.aplicarDeltaSaldo(item.material, item.quantidade);
@@ -91,14 +130,9 @@ export function registrarRegistros(router: Router) {
                     criados.push({ tabela: "kits_registro", id: String(linha.id) });
                     kitsCriados.push(linha);
                 }
-                for (const material of materiaisValidos) {
-                    const linha = await servicosEstoque.adicionar("materiais_registro", {
-                        ...material,
-                        registro: registro.id,
-                    });
-                    criados.push({ tabela: "materiais_registro", id: String(linha.id) });
-                    materiaisCriados.push(linha);
-                }
+                materiaisCriados.push(
+                    ...(await gravarMateriaisPorLote(String(registro.id), consumo, criados))
+                );
                 await baixarConsumo(consumo);
                 baixados.push(...consumo);
                 return { ...registro, kits: kitsCriados, materiais: materiaisCriados };
@@ -128,6 +162,10 @@ export function registrarRegistros(router: Router) {
             executar: async () => {
                 const linha = await servicosEstoque.adicionar("kits_registro", dados);
                 criados.push({ tabela: "kits_registro", id: String(linha.id) });
+                const registroId = String(dados.registro ?? linha.registro ?? "");
+                if (registroId) {
+                    await gravarMateriaisPorLote(registroId, consumo, criados);
+                }
                 await baixarConsumo(consumo);
                 baixados.push(...consumo);
                 return linha;
@@ -151,13 +189,17 @@ export function registrarRegistros(router: Router) {
         const criados: { tabela: string; id: string }[] = [];
         const baixados: { material: string; quantidade: number }[] = [];
 
+        const registroId = String(dados.registro ?? "").trim();
+        if (!registroId) {
+            throw new ErroValidacao("O campo 'registro' é obrigatório.");
+        }
+
         const resultado = await servicosEstoque.executarComCompensacao({
             executar: async () => {
-                const linha = await servicosEstoque.adicionar("materiais_registro", dados);
-                criados.push({ tabela: "materiais_registro", id: String(linha.id) });
+                const linhas = await gravarMateriaisPorLote(registroId, consumo, criados);
                 await baixarConsumo(consumo);
                 baixados.push(...consumo);
-                return linha;
+                return linhas.length === 1 ? linhas[0] : linhas;
             },
             compensar: async () => {
                 await reporConsumo(baixados);
@@ -271,7 +313,14 @@ export function registrarRegistros(router: Router) {
                     await servicosEstoque.comRetry(() => servicosEstoque.aplicarDeltaSaldo(materialNovo, -qtdNova));
                     aplicados.push({ material: materialNovo, quantidade: qtdNova });
                 }
-                const linha = await servicosEstoque.alterar("materiais_registro", id, patch);
+                const itemCompra = String(
+                    ("item_compra" in patch ? patch.item_compra : atual.item_compra) ?? ""
+                );
+                const patchFinal = { ...patch };
+                if (!("custo" in patchFinal)) {
+                    patchFinal.custo = await custoDoLote(itemCompra, qtdNova);
+                }
+                const linha = await servicosEstoque.alterar("materiais_registro", id, patchFinal);
                 alterouLinha = true;
                 return linha;
             },

@@ -70,6 +70,13 @@ describe("rotas /estoque", () => {
             return { id: "est-1", material, quantidade: 0, nome: "Gaze" };
         };
         servicosEstoque.calcularConsumo = async () => [{ material: "mat-1", quantidade: 2 }];
+        servicosEstoque.alocarConsumoPorLotes = async (consumo) =>
+            consumo.map((item) => ({
+                material: item.material,
+                quantidade: item.quantidade,
+                item_compra: "lote-1",
+                custo: 20,
+            }));
         servicosEstoque.garantirSaldos = async () => undefined;
         servicosEstoque.compensarPaginas = async () => undefined;
         servicosEstoque.comRetry = originais.comRetry;
@@ -189,5 +196,38 @@ describe("rotas /estoque", () => {
         assert.match(res.json.erro, /Saldo insuficiente/);
         assert.equal(adicionou, false);
         assert.deepEqual(baixas, []);
+    });
+
+    test("POST registro parte o consumo em lotes FIFO", async () => {
+        const gravados: Record<string, unknown>[] = [];
+        servicosEstoque.calcularConsumo = async () => [{ material: "mat-1", quantidade: 8 }];
+        servicosEstoque.alocarConsumoPorLotes = async () => [
+            { material: "mat-1", quantidade: 6, item_compra: "lote-antigo", custo: 60 },
+            { material: "mat-1", quantidade: 2, item_compra: "lote-novo", custo: 40 },
+        ];
+        servicosEstoque.adicionar = async (tabela, dados) => {
+            seq += 1;
+            const linha = { id: `${tabela}-${seq}`, ...dados };
+            if (tabela === "materiais_registro") gravados.push(linha);
+            return linha;
+        };
+        const res = await chamar(url, "POST", comDominioEstoque("/estoque/registros"), {
+            body: {
+                data_hora: "2026-09-03T11:00:00",
+                paciente: "pac-1",
+                medico: "med-1",
+                materiais: [{ material: "mat-1", quantidade: 8 }],
+            },
+        });
+        assert.equal(res.status, 201);
+        assert.equal(gravados.length, 2);
+        assert.equal(gravados[0]?.item_compra, "lote-antigo");
+        assert.equal(gravados[0]?.quantidade, 6);
+        assert.equal(gravados[0]?.custo, 60);
+        assert.equal(gravados[1]?.item_compra, "lote-novo");
+        assert.equal(gravados[1]?.quantidade, 2);
+        assert.equal(gravados[1]?.custo, 40);
+        assert.deepEqual(baixas, [{ material: "mat-1", quantidade: 8 }]);
+        assert.equal(res.json.dados.materiais.length, 2);
     });
 });
