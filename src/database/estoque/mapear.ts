@@ -144,7 +144,10 @@ function validarCampo(campo: CampoSchema, valor: unknown, presente: boolean): st
             }
             return null;
         case "relation":
-            if (typeof valor !== "string" || !valor.trim()) {
+            if (typeof valor !== "string") {
+                return `O campo '${campo.nome}' deve ser texto.`;
+            }
+            if (campo.obrigatorioNoPost && !valor.trim()) {
                 return `O campo '${campo.nome}' é obrigatório.`;
             }
             return null;

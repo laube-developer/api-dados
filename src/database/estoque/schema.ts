@@ -181,6 +181,8 @@ export const RECURSOS: RecursoSchema[] = [
             campo("registro", "relation", true),
             campo("material", "relation", true),
             campo("quantidade", "number", true),
+            campo("item_compra", "relation"),
+            campo("custo", "number", false, true),
         ],
     },
     {

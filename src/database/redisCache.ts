@@ -4,6 +4,7 @@ type Envelope<T> = { dados: T };
 
 let client: RedisClientType | null = null;
 let conectando: Promise<RedisClientType | null> | null = null;
+let desligadoAte = 0;
 const memoria = new Map<string, { expiraEm: number; valor: unknown }>();
 
 /** 8h–18h America/Sao_Paulo: 3 min. Fora: 1 h. Só preenche no request (sem job que bata na Notion). */
@@ -40,6 +41,9 @@ async function obterCliente(): Promise<RedisClientType | null> {
     if (client?.isOpen) {
         return client;
     }
+    if (Date.now() < desligadoAte) {
+        return null;
+    }
     if (conectando) {
         return conectando;
     }
@@ -47,14 +51,22 @@ async function obterCliente(): Promise<RedisClientType | null> {
     const url = urlRedis();
     conectando = (async () => {
         try {
-            const c = createClient({ url }) as RedisClientType;
+            const c = createClient({
+                url,
+                socket: {
+                    connectTimeout: 1500,
+                    reconnectStrategy: false,
+                },
+            }) as RedisClientType;
             c.on("error", (erro) => {
                 console.error("[redis]", erro);
             });
             await c.connect();
             client = c;
+            desligadoAte = 0;
             return c;
         } catch (erro) {
+            desligadoAte = Date.now() + 30_000;
             console.error("[redis] cache desligado:", erro);
             return null;
         } finally {

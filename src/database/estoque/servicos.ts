@@ -1,5 +1,6 @@
 import { adicionar, alterar, buscarPorId, listar, listarPaginado } from "./crud";
 import { calcularConsumo, somarConsumo } from "./consumo";
+import { alocarConsumoPorLotes } from "./lotes";
 import { aplicarDeltaSaldo, decrementarSaldo, garantirSaldos, incrementarSaldo, obterSaldo } from "./saldo";
 import { compensarPaginas, comRetry, executarComCompensacao } from "./transacao";
 
@@ -16,6 +17,7 @@ export const servicosEstoque = {
     garantirSaldos,
     calcularConsumo,
     somarConsumo,
+    alocarConsumoPorLotes,
     comRetry,
     executarComCompensacao,
     compensarPaginas,
