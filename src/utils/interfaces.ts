@@ -193,3 +193,16 @@ export interface EstoqueSaldo {
     quantidade: number;
     nome: string;
 }
+export interface CronMedicoTable {
+    id: string;
+    nome: string;
+    id_unico: string;
+    clinicaId: string;
+    telefone: string;
+    cron: string;
+    ativo: boolean;
+    tipo_antecedencia: string;
+    antecedencia: number | null;
+    unidades: string;
+    botconversa_webhook: string;
+}
