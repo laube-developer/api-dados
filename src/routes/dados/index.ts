@@ -55,6 +55,7 @@ import {
 import { buscarAgendas } from "../../database/agendas/buscarAgendas";
 import { responderErro, responderSucesso } from "../../utils/respostas";
 import { buscarTableCron } from "../../database/config/cron/buscarTableCron";
+import { buscarTableCronMedicos } from "../../database/config/cron/buscarTableCronMedicos.js";
 import {
     buscarClinicaPorId,
     ErroValidacaoClinica,
@@ -88,6 +89,7 @@ export const dependenciasDados = {
     atualizarAgendas,
     reverterSincronizacao,
     buscarTableCron,
+    buscarTableCronMedicos,
     listarClinicas,
     buscarClinicaPorId,
     buscarClinicaPorDominio,
@@ -459,6 +461,14 @@ rotasDados.post("/reverterSincronizacao", async (req: express.Request, res: expr
 
         const mensagem = error instanceof Error ? error.message : "Erro ao reverter sincronização";
         return responderErro(res, mensagem);
+    }
+});
+
+rotasDados.get("/buscarTableCronMedicos", async (_req: express.Request, res: express.Response) => {
+    try {
+        return responderSucesso(res, await dependenciasDados.buscarTableCronMedicos());
+    } catch (error) {
+        return responderErro(res, error instanceof Error ? error.message : "Erro ao buscar cron de médicos");
     }
 });
 
