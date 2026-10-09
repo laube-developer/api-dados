@@ -56,6 +56,7 @@ import { buscarAgendas } from "../../database/agendas/buscarAgendas";
 import { responderErro, responderSucesso } from "../../utils/respostas";
 import { buscarTableCron } from "../../database/config/cron/buscarTableCron";
 import { buscarTableCronMedicos } from "../../database/config/cron/buscarTableCronMedicos.js";
+import { buscarTableCronConsultasFinalizadas } from "../../database/config/cron/buscarTableCronConsultasFinalizadas.js";
 import {
     buscarClinicaPorId,
     ErroValidacaoClinica,
@@ -90,6 +91,7 @@ export const dependenciasDados = {
     reverterSincronizacao,
     buscarTableCron,
     buscarTableCronMedicos,
+    buscarTableCronConsultasFinalizadas,
     listarClinicas,
     buscarClinicaPorId,
     buscarClinicaPorDominio,
@@ -469,6 +471,14 @@ rotasDados.get("/buscarTableCronMedicos", async (_req: express.Request, res: exp
         return responderSucesso(res, await dependenciasDados.buscarTableCronMedicos());
     } catch (error) {
         return responderErro(res, error instanceof Error ? error.message : "Erro ao buscar cron de médicos");
+    }
+});
+
+rotasDados.get("/buscarTableCronConsultasFinalizadas", async (_req: express.Request, res: express.Response) => {
+    try {
+        return responderSucesso(res, await dependenciasDados.buscarTableCronConsultasFinalizadas());
+    } catch {
+        return responderErro(res, "Erro ao buscar cron de consultas finalizadas");
     }
 });
 

@@ -206,3 +206,14 @@ export interface CronMedicoTable {
     unidades: string;
     botconversa_webhook: string;
 }
+
+/** Configuração global; clinicaId é o UUID da página relacionada, não a base de pacientes. */
+export interface CronConsultaFinalizadaTable {
+    id: string;
+    nome: string;
+    clinicaId: string;
+    cron: string;
+    ativo: boolean;
+    unidades: string;
+    webhookurl: string;
+}

@@ -28,6 +28,16 @@ Tenant das tabelas da clínica: `X-Base-De-Dados-Id` **ou** `X-Clinica-Id` (reso
 
 Queries de database e `blocks/.../children` **paginam até `has_more` ser falso** (100 por página). `GET /buscarTableCron` percorre todas as linhas; falha numa linha **não** derruba as outras.
 
+`GET /buscarTableCronConsultasFinalizadas`: leitura sem cache da tabela
+`3df46144576980f6b498cd7a75b7bbb7`, com todas as páginas. Retorna registros
+ativos e inativos para o super-app atualizar os jobs. Respostas ou cursores
+inválidos geram erro, evitando recarga com dados parciais. O contrato completo
+está em [`docs/api.md`](docs/api.md).
+
+Configuração corrigida com base nos links fornecidos pelo usuário: consultas
+finalizadas usa `3df46144576980f6b498cd7a75b7bbb7`; agendas médicas mantém
+`3e8461445769803f952efb86c3403bec`. Nenhuma chamada ao Notion foi feita.
+
 **Pendência (estoque):** `GET /estoquePorDominio` ainda não pagina além de 100 nem usa Redis. Fazer na leva de estoque.
 
 ---
@@ -72,6 +82,12 @@ Todas as rotas seguem o mesmo envelope JSON.
 ```bash
 npm test
 ```
+
+Consultas finalizadas: `tests/dados/cronConsultasFinalizadas.test.ts` e
+`tests/dados/cronConsultasFinalizadasRotas.test.ts` cobrem leitura, paginação,
+normalização, desativação, autenticação, envelope e falhas. Usam `fetch`
+simulado e objetos HTTP em memória, sem chamadas externas nem servidor.
+Foram preparados sem execução, conforme as instruções locais do projeto.
 
 ## Rotas
 
