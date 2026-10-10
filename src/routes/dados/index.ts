@@ -112,6 +112,7 @@ rotasDados.post("/nps", async (req: express.Request, res: express.Response) => {
         return responderSucesso(res, await dependenciasDados.criarNps(req.body), 201);
     } catch (error) {
         if (error instanceof ErroValidacaoAtualizacaoPacientes) return responderErro(res, error.message, 400);
+        console.error("Falha ao criar NPS:", error instanceof Error ? error.message : "Erro desconhecido");
         return responderErro(res, "Erro ao criar registro NPS", 500);
     }
 });
@@ -124,6 +125,7 @@ rotasDados.get("/nps", async (req: express.Request, res: express.Response) => {
         return responderSucesso(res, await dependenciasDados.buscarUltimoNps(req.query.paciente_id));
     } catch (error) {
         if (error instanceof ErroValidacaoAtualizacaoPacientes) return responderErro(res, error.message, 400);
+        console.error("Falha ao consultar NPS:", error instanceof Error ? error.message : "Erro desconhecido");
         return responderErro(res, "Erro ao buscar último registro NPS", 500);
     }
 });
