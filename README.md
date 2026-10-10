@@ -580,3 +580,6 @@ A API descobre as tabelas dinamicamente pelo nome na página mãe. Nomes esperad
 | `kits_registro` | `registro`, `kit`, `quantidade` |
 | `materiais_registro` | `registro`, `material`, `quantidade` |
 | `estoque` | `material`, `quantidade`, `nome` |
+# Gestão administrativa
+
+O namespace `/gestao` lê schemas e registros, valida pertencimento das páginas e permite gravação parcial/arquivamento no Notion. Usa `GESTAO_API_TOKEN` quando configurado, ou `AUTH_TOKEN` existente, e não controla os crons. O super-app coordena as recargas e a recuperação de operações. `GESTAO_NOTION_PAGE_ID` permite descobrir tabelas inline adicionais para leitura. Consulte [documentação da gestão](../super-app/docs/gestao.md). Os 21 testes em `tests/dados/gestao.test.ts` foram preparados sem execução, conforme as instruções locais; nenhum build ou API real foi executado.

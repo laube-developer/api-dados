@@ -217,3 +217,30 @@ export interface CronConsultaFinalizadaTable {
     unidades: string;
     webhookurl: string;
 }
+export type GestaoValor = string | number | boolean | null | string[];
+export interface GestaoCampo {
+  nome: string; tipo: string; editavel: boolean; secreto: boolean;
+  opcoes: { id: string; nome: string }[];
+}
+export interface GestaoTabela {
+  chave: string; nome: string; editavel: boolean; motivo?: string;
+  servicos: string[];
+}
+export interface GestaoRegistro {
+  id: string; versao: string; valores: Record<string, GestaoValor>;
+}
+export interface GestaoLista {
+  tabela: GestaoTabela; campos: GestaoCampo[]; registros: GestaoRegistro[];
+  proximoCursor: string | null;
+}
+export interface GestaoComando {
+  operacaoId: string; tabela: string; acao: "criar" | "alterar" | "arquivar";
+  id?: string; versao?: string; campos: Record<string, GestaoValor>;
+}
+export interface GestaoResultado {
+  operacaoId: string; tabela: string; registroId: string | null;
+  persistencia: "pendente" | "salvo" | "incerta" | "falha";
+  sincronizacao: "pendente" | "sincronizado" | "falha";
+  mensagem: string; atualizadoEm: string;
+}
+

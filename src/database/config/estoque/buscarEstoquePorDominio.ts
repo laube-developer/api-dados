@@ -5,10 +5,12 @@ import {
     ErroValidacaoClinica,
 } from "../clinicas/buscarClinica.js";
 import { normalizarDominio } from "../clinicas/buscarDominioConfirmacao.js";
+import { versaoCacheConfiguracao } from "../../redisCache.js";
 
 /** Tabela Notion `gestao > estoque`. */
 const ESTOQUE_DOMINIOS_ID = "3db4614457698097ba8ef1c82e5ddee9";
 const TTL_CACHE_MS = 5 * 60 * 1000;
+let versaoEstoque = "";
 
 function relationIds(prop: any): string[] {
     if (prop?.type !== "relation" || !Array.isArray(prop.relation)) return [];
@@ -93,6 +95,8 @@ let cache: { expiraEm: number; rows: interfaces.ConfigEstoquePorDominio[] } | nu
     null;
 
 async function listarConfigsEstoque(): Promise<interfaces.ConfigEstoquePorDominio[]> {
+    const versao = await versaoCacheConfiguracao();
+    if (versao !== versaoEstoque) { cache = null; versaoEstoque = versao; }
     const agora = Date.now();
     if (cache && agora < cache.expiraEm) {
         return cache.rows;
@@ -126,6 +130,8 @@ async function listarConfigsEstoque(): Promise<interfaces.ConfigEstoquePorDomini
     cache = { expiraEm: agora + TTL_CACHE_MS, rows };
     return rows;
 }
+
+export function invalidarCacheEstoque(): void { cache = null; }
 
 export async function buscarConfigEstoquePorDominio(
     dominioInformado: string

@@ -6,6 +6,16 @@ let client: RedisClientType | null = null;
 let conectando: Promise<RedisClientType | null> | null = null;
 let desligadoAte = 0;
 const memoria = new Map<string, { expiraEm: number; valor: unknown }>();
+let ultimaVersao = "0";
+
+export async function versaoCacheConfiguracao(): Promise<string> {
+    const redis = await obterCliente();
+    if (redis) {
+        try { ultimaVersao = await redis.get("api-dados:config-version") ?? "0"; }
+        catch { /* Leituras preservam o fallback; invalidações continuam exigindo Redis. */ }
+    }
+    return ultimaVersao;
+}
 
 /** 8h–18h America/Sao_Paulo: 3 min. Fora: 1 h. Só preenche no request (sem job que bata na Notion). */
 export function ttlCacheSegundos(): number {
@@ -78,6 +88,8 @@ async function obterCliente(): Promise<RedisClientType | null> {
 }
 
 export async function comCache<T>(chave: string, carregar: () => Promise<T>): Promise<T> {
+    // Versão compartilhada impede que outro processo ou carregamento em voo ressuscite cache antigo.
+    chave = `${chave}:v:${await versaoCacheConfiguracao()}`;
     const agora = Date.now();
     const local = memoria.get(chave);
     if (local && agora < local.expiraEm) {
@@ -116,4 +128,12 @@ export async function comCache<T>(chave: string, carregar: () => Promise<T>): Pr
     }
 
     return dados;
+}
+
+/** Não confirmar invalidação parcial: a recarga pode repetir esta operação. */
+export async function invalidarCacheConfiguracao(): Promise<void> {
+    memoria.clear();
+    const redis = await obterCliente();
+    if (!redis) throw new Error("Redis indisponível para invalidar configuração.");
+    ultimaVersao = String(await redis.incr("api-dados:config-version"));
 }

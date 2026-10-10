@@ -5,11 +5,13 @@ import { responderErro } from "./utils/respostas";
 import { bearerAuth } from "./middlewares/auth";
 import { rotasDados } from "./routes/dados";
 import { estoqueRouter } from "./routes/estoque";
+import { rotasGestao } from "./routes/gestao";
 
 export function criarApp() {
     const app = express();
 
     app.use(express.json());
+    app.use("/gestao", rotasGestao());
     app.use(bearerAuth);
     app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
         try {
