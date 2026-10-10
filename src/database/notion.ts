@@ -63,10 +63,12 @@ export async function chamarNotionAPI(
 /** Query a database Notion até `has_more` ser falso (100 por página). */
 export async function queryNotionTodasPaginas(
     databaseId: string,
-    corpo: Record<string, unknown> = {}
+    corpo: Record<string, unknown> = {},
+    opcoes?: { validarPaginacao?: boolean }
 ): Promise<any[]> {
     const paginas: any[] = [];
     let cursor: string | undefined;
+    const cursoresVisitados = new Set<string>();
 
     do {
         const payload: Record<string, unknown> = { ...corpo, page_size: 100 };
@@ -74,6 +76,19 @@ export async function queryNotionTodasPaginas(
             payload.start_cursor = cursor;
         }
         const resultado = await chamarNotionAPI(`databases/${databaseId}/query`, "POST", payload);
+        // Recargas de cron não podem confundir resposta inválida ou parcial com tabela vazia.
+        if (opcoes?.validarPaginacao) {
+            if (!Array.isArray(resultado?.results) || typeof resultado.has_more !== "boolean") {
+                throw new Error("Resposta inválida ao consultar tabela do Notion.");
+            }
+            if (resultado.has_more) {
+                const proximo = resultado.next_cursor;
+                if (typeof proximo !== "string" || !proximo.trim() || cursoresVisitados.has(proximo)) {
+                    throw new Error("Paginação inválida ao consultar tabela do Notion.");
+                }
+                cursoresVisitados.add(proximo);
+            }
+        }
         const lote = Array.isArray(resultado?.results) ? resultado.results : [];
         paginas.push(...lote);
         cursor = resultado?.has_more ? String(resultado.next_cursor ?? "") : undefined;
