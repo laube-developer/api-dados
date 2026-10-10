@@ -1,4 +1,5 @@
 import express from "express";
+import { atualizarNpsPaciente } from "../../database/pacientes/atualizarNpsPaciente.js";
 import { buscarTabelasBanco } from "../../database/notion";
 import { buscarPaciente } from "../../database/pacientes/buscarPaciente";
 import { buscarPacientes } from "../../database/pacientes/buscarPacientes";
@@ -67,6 +68,7 @@ import { buscarIntegracaoClinica } from "../../database/config/clinicas/buscarIn
 import { buscarConfigEstoquePorDominio } from "../../database/config/estoque/buscarEstoquePorDominio";
 
 export const dependenciasDados = {
+    atualizarNpsPaciente,
     buscarTabelasBanco,
     buscarPacientes,
     buscarPaciente,
@@ -100,6 +102,17 @@ export const dependenciasDados = {
 };
 
 export const rotasDados = express.Router();
+
+rotasDados.patch("/paciente/nps", async (req: express.Request, res: express.Response) => {
+    try {
+        const dados = await dependenciasDados.atualizarNpsPaciente(req.body?.paciente_id, req.body?.nps);
+        return responderSucesso(res, dados);
+    } catch (error) {
+        if (error instanceof ErroValidacaoAtualizacaoPacientes) return responderErro(res, error.message, 400);
+        if (error instanceof ErroNaoEncontradoPacientes) return responderErro(res, error.message, 404);
+        return responderErro(res, "Erro ao atualizar NPS do paciente", 500);
+    }
+});
 
 rotasDados.get("/tabelas", async (req: express.Request, res: express.Response) => {
     try {
