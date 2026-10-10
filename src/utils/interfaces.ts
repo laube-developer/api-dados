@@ -217,3 +217,10 @@ export interface CronConsultaFinalizadaTable {
     unidades: string;
     webhookurl: string;
 }
+
+export interface RegistroNps {
+    id: string;
+    paciente_id: string;
+    nps: number;
+    data_registro: string;
+}

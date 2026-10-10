@@ -1,5 +1,5 @@
 import express from "express";
-import { atualizarNpsPaciente } from "../../database/pacientes/atualizarNpsPaciente.js";
+import { criarNps, buscarUltimoNps } from "../../database/nps/registrosNps.js";
 import { buscarTabelasBanco } from "../../database/notion";
 import { buscarPaciente } from "../../database/pacientes/buscarPaciente";
 import { buscarPacientes } from "../../database/pacientes/buscarPacientes";
@@ -68,7 +68,8 @@ import { buscarIntegracaoClinica } from "../../database/config/clinicas/buscarIn
 import { buscarConfigEstoquePorDominio } from "../../database/config/estoque/buscarEstoquePorDominio";
 
 export const dependenciasDados = {
-    atualizarNpsPaciente,
+    criarNps,
+    buscarUltimoNps,
     buscarTabelasBanco,
     buscarPacientes,
     buscarPaciente,
@@ -103,14 +104,27 @@ export const dependenciasDados = {
 
 export const rotasDados = express.Router();
 
-rotasDados.patch("/paciente/nps", async (req: express.Request, res: express.Response) => {
+rotasDados.post("/nps", async (req: express.Request, res: express.Response) => {
+    if (!req.get("X-Clinica-Id") || !req.get("X-Base-De-Dados-Id")) {
+        return responderErro(res, "Informe o contexto da clínica nos headers.", 400);
+    }
     try {
-        const dados = await dependenciasDados.atualizarNpsPaciente(req.body?.paciente_id, req.body?.nps);
-        return responderSucesso(res, dados);
+        return responderSucesso(res, await dependenciasDados.criarNps(req.body), 201);
     } catch (error) {
         if (error instanceof ErroValidacaoAtualizacaoPacientes) return responderErro(res, error.message, 400);
-        if (error instanceof ErroNaoEncontradoPacientes) return responderErro(res, error.message, 404);
-        return responderErro(res, "Erro ao atualizar NPS do paciente", 500);
+        return responderErro(res, "Erro ao criar registro NPS", 500);
+    }
+});
+
+rotasDados.get("/nps", async (req: express.Request, res: express.Response) => {
+    if (!req.get("X-Clinica-Id") || !req.get("X-Base-De-Dados-Id")) {
+        return responderErro(res, "Informe o contexto da clínica nos headers.", 400);
+    }
+    try {
+        return responderSucesso(res, await dependenciasDados.buscarUltimoNps(req.query.paciente_id));
+    } catch (error) {
+        if (error instanceof ErroValidacaoAtualizacaoPacientes) return responderErro(res, error.message, 400);
+        return responderErro(res, "Erro ao buscar último registro NPS", 500);
     }
 });
 
