@@ -1,4 +1,5 @@
 import express from "express";
+import { buscarConvenios } from "../../database/convenios/buscarConvenios.js";
 import { criarNps, buscarUltimoNps, verificarNpsEmLote } from "../../database/nps/registrosNps.js";
 import { buscarTabelasBanco } from "../../database/notion";
 import { buscarPaciente } from "../../database/pacientes/buscarPaciente";
@@ -68,6 +69,7 @@ import { buscarIntegracaoClinica } from "../../database/config/clinicas/buscarIn
 import { buscarConfigEstoquePorDominio } from "../../database/config/estoque/buscarEstoquePorDominio";
 
 export const dependenciasDados = {
+    buscarConvenios,
     verificarNpsEmLote,
     criarNps,
     buscarUltimoNps,
@@ -104,6 +106,18 @@ export const dependenciasDados = {
 };
 
 export const rotasDados = express.Router();
+
+rotasDados.get("/convenios", async (req: express.Request, res: express.Response) => {
+    if (!req.get("X-Clinica-Id") && !req.get("X-Base-De-Dados-Id")) {
+        return responderErro(res, "Informe o contexto da clínica nos headers.", 400);
+    }
+    try {
+        return responderSucesso(res, await dependenciasDados.buscarConvenios());
+    } catch {
+        console.error("Falha ao buscar convênios da clínica.");
+        return responderErro(res, "Erro ao buscar convênios da clínica", 500);
+    }
+});
 
 rotasDados.post("/nps/verify/lote", async (req: express.Request, res: express.Response) => {
     if (!req.get("X-Clinica-Id") || !req.get("X-Base-De-Dados-Id")) {

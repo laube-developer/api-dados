@@ -122,7 +122,7 @@ export async function listarTodosBlocosFilhos(blockId: string): Promise<any[]> {
     return blocos;
 }
 
-export async function buscarTabelasBanco() {
+export async function buscarTabelasBanco(opcoes?: { semCache?: boolean }) {
     const pageId =
         baseDeDadosStore.getStore()?.pageId || NOTION_DATABASE_PAGE_ID;
 
@@ -130,7 +130,7 @@ export async function buscarTabelasBanco() {
         throw new Error("NOTION_DATABASE_PAGE_ID não configurado.");
     }
 
-    return comCache(`api-dados:tabelas:${pageId}`, async () => {
+    const carregar = async () => {
         const blocos = await listarTodosBlocosFilhos(pageId);
         return blocos
             .filter((block: any) => block.type === "child_database")
@@ -138,5 +138,6 @@ export async function buscarTabelasBanco() {
                 id: block.id,
                 nome: block.child_database?.title?.toLowerCase().trim() || "",
             }));
-    });
+    };
+    return opcoes?.semCache ? carregar() : comCache(`api-dados:tabelas:${pageId}`, carregar);
 }

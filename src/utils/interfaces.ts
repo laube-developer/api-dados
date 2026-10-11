@@ -52,6 +52,11 @@ export interface Medico {
     nome: string;
 }
 
+export interface Convenio {
+    id: string;
+    nome: string;
+}
+
 export type AtualizacaoMedico = Partial<Medico> & { id_unico: string };
 
 export interface Agenda {
