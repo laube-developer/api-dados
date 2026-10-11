@@ -1,5 +1,5 @@
 import express from "express";
-import { criarNps, buscarUltimoNps } from "../../database/nps/registrosNps.js";
+import { criarNps, buscarUltimoNps, verificarNpsEmLote } from "../../database/nps/registrosNps.js";
 import { buscarTabelasBanco } from "../../database/notion";
 import { buscarPaciente } from "../../database/pacientes/buscarPaciente";
 import { buscarPacientes } from "../../database/pacientes/buscarPacientes";
@@ -68,6 +68,7 @@ import { buscarIntegracaoClinica } from "../../database/config/clinicas/buscarIn
 import { buscarConfigEstoquePorDominio } from "../../database/config/estoque/buscarEstoquePorDominio";
 
 export const dependenciasDados = {
+    verificarNpsEmLote,
     criarNps,
     buscarUltimoNps,
     buscarTabelasBanco,
@@ -103,6 +104,19 @@ export const dependenciasDados = {
 };
 
 export const rotasDados = express.Router();
+
+rotasDados.post("/nps/verify/lote", async (req: express.Request, res: express.Response) => {
+    if (!req.get("X-Clinica-Id") || !req.get("X-Base-De-Dados-Id")) {
+        return responderErro(res, "Informe o contexto da clínica nos headers.", 400);
+    }
+    try {
+        return responderSucesso(res, await dependenciasDados.verificarNpsEmLote(req.body));
+    } catch (error) {
+        if (error instanceof ErroValidacaoAtualizacaoPacientes) return responderErro(res, error.message, 400);
+        console.error("Falha ao verificar NPS em lote.");
+        return responderErro(res, "Erro ao verificar NPS em lote", 500);
+    }
+});
 
 rotasDados.post("/nps", async (req: express.Request, res: express.Response) => {
     if (!req.get("X-Clinica-Id") || !req.get("X-Base-De-Dados-Id")) {

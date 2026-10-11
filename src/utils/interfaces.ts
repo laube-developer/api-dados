@@ -224,3 +224,8 @@ export interface RegistroNps {
     nps: number;
     data_registro: string;
 }
+
+export interface VerificacaoNpsPaciente {
+    paciente_id: string;
+    avaliacao_valida: boolean;
+}

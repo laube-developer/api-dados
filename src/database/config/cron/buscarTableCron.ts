@@ -1,7 +1,6 @@
 
 import type * as interfaces from "../../../utils/interfaces.js";
 import { chamarNotionAPI, queryNotionTodasPaginas } from "../../notion.js";
-import { comCache } from "../../redisCache.js";
 import { mapearClinica } from "../clinicas/buscarClinica.js";
 
 function relationIds(prop: any): string[] {
@@ -184,5 +183,6 @@ async function carregarTableCron(): Promise<interfaces.CronTable[]> {
 }
 
 export async function buscarTableCron(): Promise<interfaces.CronTable[]> {
-  return comCache("api-dados:cron-table", carregarTableCron);
+  // A recarga precisa refletir imediatamente alterações e desativações no Notion.
+  return carregarTableCron();
 }
