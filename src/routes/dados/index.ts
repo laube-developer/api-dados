@@ -1,4 +1,5 @@
 import express from "express";
+import { LogClass } from "../../utils/log.js";
 import { buscarConvenios } from "../../database/convenios/buscarConvenios.js";
 import { criarNps, buscarUltimoNps, verificarNpsEmLote } from "../../database/nps/registrosNps.js";
 import { buscarTabelasBanco } from "../../database/notion";
@@ -114,7 +115,7 @@ rotasDados.get("/convenios", async (req: express.Request, res: express.Response)
     try {
         return responderSucesso(res, await dependenciasDados.buscarConvenios());
     } catch {
-        console.error("Falha ao buscar convênios da clínica.");
+        LogClass.error("Falha ao buscar convênios da clínica.", "GET /convenios");
         return responderErro(res, "Erro ao buscar convênios da clínica", 500);
     }
 });
