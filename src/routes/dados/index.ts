@@ -2,7 +2,7 @@ import express from "express";
 import { LogClass } from "../../utils/log.js";
 import { buscarConvenios } from "../../database/convenios/buscarConvenios.js";
 import { criarNps, buscarUltimoNps, verificarNpsEmLote } from "../../database/nps/registrosNps.js";
-import { buscarTabelasBanco } from "../../database/notion";
+import { buscarTabelasBanco, runWithBaseDeDadosId } from "../../database/notion";
 import { buscarPaciente } from "../../database/pacientes/buscarPaciente";
 import { buscarPacientes } from "../../database/pacientes/buscarPacientes";
 import { adicionarPaciente, ErroValidacao as ErroValidacaoPaciente } from "../../database/pacientes/adicionarPaciente";
@@ -109,11 +109,17 @@ export const dependenciasDados = {
 export const rotasDados = express.Router();
 
 rotasDados.get("/convenios", async (req: express.Request, res: express.Response) => {
-    if (!req.get("X-Clinica-Id") && !req.get("X-Base-De-Dados-Id")) {
-        return responderErro(res, "Informe o contexto da clínica nos headers.", 400);
+    const identificador = req.query.clinica_id ?? req.get("X-Clinica-Id");
+    if (typeof identificador !== "string" || !identificador.trim()) {
+        return responderErro(res, "Informe clinica_id.", 400);
     }
     try {
-        return responderSucesso(res, await dependenciasDados.buscarConvenios());
+        const clinica = await dependenciasDados.buscarClinicaPorId(identificador.trim());
+        if (!clinica) return responderErro(res, "Clínica não encontrada.", 404);
+        if (!clinica.base_de_dados_id) return responderErro(res, "Clínica sem base_de_dados_id configurada.", 422);
+        const dados = await runWithBaseDeDadosId(clinica.base_de_dados_id, () => dependenciasDados.buscarConvenios());
+        LogClass.log(`Convênios consultados para clínica ${clinica.id} na base ${clinica.base_de_dados_id}.`, "GET /convenios");
+        return responderSucesso(res, dados);
     } catch {
         LogClass.error("Falha ao buscar convênios da clínica.", "GET /convenios");
         return responderErro(res, "Erro ao buscar convênios da clínica", 500);
