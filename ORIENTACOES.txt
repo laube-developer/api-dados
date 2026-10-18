@@ -1,0 +1,47 @@
+Pendência: retornar o filtro pacientes na tabela cron da api-dados
+
+Contexto
+O Notion possui uma coluna chamada pacientes na tabela cron. Ela contém IDs de
+pacientes do Amigo separados por vírgula, por exemplo: 123456,123459.
+Campo vazio significa todos os pacientes elegíveis.
+
+O super-app já lê row.pacientes com parseStringList, mantém a lista no catálogo
+e aplica o filtro nos disparos agendados e manuais. Porém, na api-dados local,
+o endpoint GET /buscarTableCron ainda não inclui pacientes no retorno.
+Assim, a recarga /cron-table-updates do super-app apresenta pacientes: [].
+
+Alterações necessárias no projeto api-dados
+
+1. Leia primeiro o AGENTS.md do projeto.
+
+2. Em src/database/config/cron/buscarTableCron.ts, na função mapearUmaLinhaCron,
+adicione ao objeto retornado, junto de medicos:
+
+    pacientes: texto(propPorNome(props, ["pacientes"])),
+
+Reutilize as funções texto e propPorNome existentes, assim como medicos.
+Não é necessário criar outro endpoint ou mudar o worker do Notion.
+
+3. Em src/utils/interfaces.ts, na interface CronTable, adicione:
+
+    pacientes: string;
+
+4. Atualize os testes e fixtures pertinentes ao contrato CronTable. Valide que
+GET /buscarTableCron retorna pacientes para estes casos:
+- "123456,123459": preserva os dois IDs.
+- "123456": preserva o único ID.
+- Coluna vazia ou ausente: retorna "".
+Use os mocks de Notion existentes e execute os testes e a checagem TypeScript
+adequados ao projeto. Não faça disparos reais de confirmação na validação.
+
+Validação após publicar a api-dados
+- Confirme que GET /buscarTableCron retorna pacientes na linha configurada.
+- Recarregue o super-app com GET /cron-table-updates.
+- Confira no resumo do job: pacientes: ["123456", "123459"].
+- O disparo manual POST /schedule/manualDispatch usa os pacientes da linha do
+  cron selecionada por clinica_id e name; não é necessário enviá-los no body.
+- Os demais filtros de período, médicos, unidades e status continuam válidos.
+
+Estado desta pendência
+A causa foi identificada por inspeção do código local da api-dados.
+As alterações acima ainda NÃO foram aplicadas na api-dados nesta sessão.

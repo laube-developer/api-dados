@@ -86,7 +86,7 @@ Paths e contratos iguais aos de produção. Tenant: `x-base-de-dados-id`.
 | POST | `/adicionarAgenda` | Cria agenda (201) |
 | PATCH | `/atualizarAgendas` | Atualiza agendas |
 | POST | `/reverterSincronizacao` | Reverte sincronização |
-| GET | `/buscarTableCron` | Jobs de confirmação (todas as páginas Notion; uma linha com erro é ignorada). Cada linha: `name`, `clinica`, `integracao`, `chave_segura`, `botconversa_msg_url`, `cron` (expressão), `tipo_antecedencia`, `antecedencia`, `tipo_dia`, `unidades` e `medicos` (texto com ids separados por vírgula), `ativo`. Sem `metadata` / `cron_rule`. Cache Redis (3 min 8h–18h SP; 1 h fora). |
+| GET | `/buscarTableCron` | Jobs de confirmação (todas as páginas Notion; uma linha com erro é ignorada). Cada linha: `name`, `clinica`, `integracao`, `chave_segura`, `botconversa_msg_url`, `cron` (expressão), `tipo_antecedencia`, `antecedencia`, `tipo_dia`, `unidades`, `medicos` e `pacientes` (texto com ids separados por vírgula), `ativo`. `pacientes` vazio ou ausente no Notion retorna `""` e representa todos os pacientes elegíveis. Sem `metadata` / `cron_rule`. Leitura sem cache para refletir alterações na recarga. |
 | GET | `/buscarTableCronConsultasFinalizadas` | Configuração global de consultas finalizadas; leitura paginada sem cache. Retorna registros ativos e inativos. |
 | GET | `/clinicas` | Lista clínicas |
 | GET | `/clinica` | Por `id` |

@@ -112,6 +112,7 @@ export interface CronTable {
     tipo_dia: string;
     unidades: string;
     medicos: string;
+    pacientes: string;
     ativo: boolean;
 }
 

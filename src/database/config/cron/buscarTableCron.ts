@@ -156,6 +156,7 @@ async function mapearUmaLinhaCron(page: any): Promise<interfaces.CronTable | nul
     tipo_dia: texto(propPorNome(props, ["tipo_dia"])),
     unidades: texto(propPorNome(props, ["unidades"])),
     medicos: texto(propPorNome(props, ["medicos"])),
+    pacientes: texto(propPorNome(props, ["pacientes"])),
     ativo: checkbox(propPorNome(props, ["ativo"]), true),
   };
 }

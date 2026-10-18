@@ -1,6 +1,7 @@
 import { after, afterEach, before, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { criarApp } from "../../src/app";
+import type { CronTable } from "../../src/utils/interfaces";
 import { dependenciasDados } from "../../src/routes/dados";
 import { TOKEN_TESTE, chamar, subirServidor } from "../helpers/http";
 import { ErroValidacao as ErroValidacaoPaciente } from "../../src/database/pacientes/adicionarPaciente";
@@ -88,6 +89,21 @@ const configEstoque = {
     pacientes_database_id: "db-pacientes",
 };
 const originais = { ...dependenciasDados };
+const cronTable: CronTable = {
+    name: "cron",
+    clinica: { id: "c1", name: "Salus", base_de_dados_id: "base1" },
+    integracao: { name: "totem" },
+    chave_segura: "segredo",
+    botconversa_msg_url: "https://bot.example/msg",
+    cron: "0 8 * * *",
+    tipo_antecedencia: "dias",
+    antecedencia: 1,
+    tipo_dia: "corridos",
+    unidades: "10",
+    medicos: "20",
+    pacientes: "123456,123459",
+    ativo: true,
+};
 
 function stub(parciais: Partial<typeof dependenciasDados>) {
     Object.assign(dependenciasDados, parciais);
@@ -131,7 +147,7 @@ describe("rotas de dados /*", () => {
             buscarAgendas: async () => [agenda],
             atualizarAgendas: async () => [agenda],
             reverterSincronizacao: async () => undefined,
-            buscarTableCron: async () => [{ nome: "cron" }],
+            buscarTableCron: async () => [cronTable],
             listarClinicas: async () => [clinica],
             buscarClinicaPorId: async () => clinica,
             buscarClinicaPorDominio: async () => dominioConfirmacao,
@@ -569,7 +585,7 @@ describe("rotas de dados /*", () => {
         test("GET /buscarTableCron retorna 200", async () => {
             const res = await chamar(url, "GET", "/buscarTableCron");
             assert.equal(res.status, 200);
-            assert.deepEqual(res.json.dados, [{ nome: "cron" }]);
+            assert.deepEqual(res.json.dados, [cronTable]);
         });
 
         test("GET /clinicas retorna 200", async () => {
