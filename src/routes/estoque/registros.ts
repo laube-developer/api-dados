@@ -102,6 +102,7 @@ export function registrarRegistros(router: Router) {
         const { kits, materiais, ...restante } = body;
         const dados = {
             data_hora: restante.data_hora,
+            procedimento: restante.procedimento,
             paciente: restante.paciente,
             medico: restante.medico,
         };

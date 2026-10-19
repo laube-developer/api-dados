@@ -151,6 +151,7 @@ export const RECURSOS: RecursoSchema[] = [
             campo("data_hora", "date", true),
             campo("paciente", "relation", true),
             campo("medico", "relation", true),
+            campo("procedimento", "relation", true),
         ],
     },
     {

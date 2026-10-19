@@ -1,4 +1,4 @@
-import { adicionar, alterar, buscarPorId, listar } from "./crud";
+import { adicionar, alterar, listar } from "./crud";
 import { ErroSaldoInsuficiente, ErroValidacao } from "./erros";
 import type { RegistroEstoque } from "./mapear";
 
@@ -13,24 +13,13 @@ export async function obterSaldo(material: string): Promise<number> {
     return typeof qtd === "number" ? qtd : 0;
 }
 
-async function nomeDoMaterial(material: string): Promise<string> {
-    try {
-        const registro = await buscarPorId("materiais", material);
-        const nome = typeof registro.nome === "string" ? registro.nome.trim() : "";
-        return nome || material;
-    } catch {
-        return material;
-    }
-}
-
 export async function incrementarSaldo(material: string, quantidade: number): Promise<RegistroEstoque> {
     if (!Number.isInteger(quantidade) || quantidade < 0) {
         throw new ErroValidacao("O campo 'quantidade' deve ser um inteiro ≥ 0.");
     }
     const linha = await linhaDeMaterial(material);
     if (!linha) {
-        const nome = await nomeDoMaterial(material);
-        return adicionar("estoque", { material, quantidade, nome });
+        return adicionar("estoque", { material, quantidade });
     }
     const atual = typeof linha.quantidade === "number" ? linha.quantidade : 0;
     return alterar("estoque", String(linha.id), { quantidade: atual + quantidade });

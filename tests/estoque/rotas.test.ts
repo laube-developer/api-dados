@@ -162,7 +162,7 @@ describe("rotas /estoque", () => {
         const res = await chamar(url, "POST", comDominioEstoque("/estoque/registros"), {
             body: {
                 data_hora: "2026-09-03T11:00:00",
-                tipo_procedimento: "tp-1",
+                procedimento: "tp-1",
                 paciente: "pac-1",
                 medico: "med-1",
                 quantidade: 1,
@@ -170,6 +170,7 @@ describe("rotas /estoque", () => {
             },
         });
         assert.equal(res.status, 201);
+        assert.equal(res.json.dados.procedimento, "tp-1");
         assert.deepEqual(baixas, [{ material: "mat-1", quantidade: 2 }]);
     });
 

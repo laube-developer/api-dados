@@ -1,6 +1,6 @@
 import { estoqueTenantAtual } from "../config/estoque/estoqueTenant";
 import { dependenciasEstoque } from "./deps";
-import { ErroNaoEncontrado } from "./erros";
+import { ErroNaoEncontrado, ErroValidacao } from "./erros";
 import { jsonParaProperties, paginaParaJson, validarCorpo, type RegistroEstoque } from "./mapear";
 import { recursoPorTabela, type RecursoSchema, type TipoCampo } from "./schema";
 
@@ -295,6 +295,25 @@ export async function buscarPorId(tabela: string, id: string): Promise<RegistroE
 export async function adicionar(tabela: string, dados: Record<string, unknown>): Promise<RegistroEstoque> {
     const recurso = recursoPorTabela(tabela);
     validarCorpo(recurso, dados, "criar");
+    if (tabela === "estoque") {
+        const linhas = await listar("estoque", { material: String(dados.material).trim() });
+        if (linhas.length > 1) {
+            throw new ErroValidacao("Este material possui mais de uma linha de estoque. Regularize os saldos duplicados antes de ajustar.");
+        }
+        const material = await buscarPorId("materiais", String(dados.material).trim());
+        const nome = typeof material.nome === "string" ? material.nome.trim() : "";
+        if (!nome) {
+            throw new ErroValidacao("O material precisa ter um nome para salvar o estoque.");
+        }
+        dados = { ...dados, nome };
+        const existente = linhas[0];
+        if (existente) {
+            return alterar("estoque", existente.id, {
+                quantidade: dados.quantidade,
+                nome,
+            });
+        }
+    }
     const databaseId = await idTabela(tabela);
     const properties = jsonParaProperties(recurso, dados, "criar");
     const page = await dependenciasEstoque.chamarNotionAPI("pages", "POST", {
