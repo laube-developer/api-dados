@@ -88,6 +88,33 @@ describe("rotas /estoque", () => {
         Object.assign(dependenciasEstoque, depsOriginais);
     });
 
+    test("DELETE registro exige autenticação e contexto da clínica", async () => {
+        let chamadas = 0;
+        servicosEstoque.removerRegistro = async (id) => { chamadas++; return { id, removido: true }; };
+        const path = "/estoque/registros/00000000-0000-0000-0000-000000000001";
+        assert.equal((await chamar(url, "DELETE", comDominioEstoque(path), { token: null })).status, 401);
+        assert.equal((await chamar(url, "DELETE", path)).status, 400);
+        assert.equal(chamadas, 0);
+        const res = await chamar(url, "DELETE", comDominioEstoque(path));
+        assert.equal(res.status, 200);
+        assert.equal(res.json.dados.removido, true);
+        assert.equal(chamadas, 1);
+    });
+
+    test("GET detalhes exige autenticação e retorna uma resposta agregada", async () => {
+        let chamadas = 0;
+        servicosEstoque.carregarDetalhesRegistro = async () => { chamadas++; return { obs: "Teste", materiais: [{ id: "item", nome: "Gaze", quantidade: 11 }], kits: [] }; };
+        const path = "/estoque/registros/00000000-0000-0000-0000-000000000001/detalhes";
+        assert.equal((await chamar(url, "GET", comDominioEstoque(path), { token: null })).status, 401);
+        assert.equal((await chamar(url, "GET", path)).status, 400);
+        assert.equal(chamadas, 0);
+        const res = await chamar(url, "GET", comDominioEstoque(path));
+        assert.equal(res.status, 200);
+        assert.equal(res.json.dados.materiais[0].nome, "Gaze");
+        assert.equal(res.json.dados.materiais[0].quantidade, 11);
+        assert.equal(chamadas, 1);
+    });
+
     test("GET /materiais sem token retorna 401", async () => {
         const res = await chamar(url, "GET", "/estoque/materiais", { token: null });
         assert.equal(res.status, 401);

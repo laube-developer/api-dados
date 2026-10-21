@@ -32,7 +32,7 @@ export function idDiretoDaTabela(recurso: RecursoSchema): string | undefined {
     return undefined;
 }
 
-async function idTabela(nome: string): Promise<string> {
+export async function idTabela(nome: string): Promise<string> {
     const recurso = recursoPorTabela(nome);
     const direto = idDiretoDaTabela(recurso);
     if (direto) {
@@ -224,6 +224,33 @@ export async function listar(tabela: string, query: Record<string, unknown> = {}
     return (await listarPaginado(tabela, query)).itens;
 }
 
+async function listarEstoquePorNomeMaterial(query: Record<string, unknown>): Promise<ListaPaginada> {
+    const termo = textoQuery(query.q)?.trim() ?? "";
+    const materiais = await listar("materiais", { q: termo });
+    const ids = [...new Set(materiais.map((material) => String(material.id)).filter(Boolean))];
+    if (!ids.length) {
+        const paginacao = parsePaginacao(query);
+        return { itens: [], ...(paginacao ? { paginacao: { ...paginacao, has_more: false } } : {}) };
+    }
+
+    const saldos = new Map<string, RegistroEstoque>();
+    for (let inicio = 0; inicio < ids.length; inicio += 20) {
+        const linhas = await listar("estoque", {
+            material: ids.slice(inicio, inicio + 20).join(","),
+        });
+        for (const linha of linhas) saldos.set(linha.id, linha);
+    }
+
+    const todos = [...saldos.values()];
+    const paginacao = parsePaginacao(query);
+    if (!paginacao) return { itens: todos };
+    const inicio = (paginacao.page - 1) * paginacao.limit;
+    return {
+        itens: todos.slice(inicio, inicio + paginacao.limit),
+        paginacao: { ...paginacao, has_more: todos.length > inicio + paginacao.limit },
+    };
+}
+
 export async function listarPaginado(
     tabela: string,
     query: Record<string, unknown> = {}
@@ -240,6 +267,12 @@ export async function listarPaginado(
             }
             throw error;
         }
+    }
+
+    // A tela de estoque mostra nomes vindos da relação com materiais; busque
+    // pelo catálogo para encontrar saldos mesmo que o título do saldo esteja vazio.
+    if (tabela === "estoque" && textoQuery(query.q)?.trim()) {
+        return listarEstoquePorNomeMaterial(query);
     }
 
     const databaseId = await idTabela(tabela);

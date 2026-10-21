@@ -97,10 +97,21 @@ async function reporConsumo(consumo: { material: string; quantidade: number }[])
 }
 
 export function registrarRegistros(router: Router) {
+    router.get("/registros/:id/detalhes", tratar(async (req, res) => {
+        const dados = await servicosEstoque.carregarDetalhesRegistro(String(req.params.id ?? ""));
+        return responderSucesso(res, dados);
+    }));
+
+    router.delete("/registros/:id", tratar(async (req, res) => {
+        const resultado = await servicosEstoque.removerRegistro(String(req.params.id ?? ""));
+        return responderSucesso(res, resultado);
+    }));
+
     router.post("/registros", tratar(async (req, res) => {
         const body = req.body ?? {};
         const { kits, materiais, ...restante } = body;
         const dados = {
+            nome: `registros ${String(restante.data_hora ?? "").replace("T", " ").replace(/(?:Z|[+-]\d{2}:\d{2})$/, "")}`,
             data_hora: restante.data_hora,
             procedimento: restante.procedimento,
             paciente: restante.paciente,

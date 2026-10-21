@@ -1,4 +1,5 @@
 import { adicionar, alterar, listar } from "./crud";
+import { listarPorRelacoes } from "./consultasEmLote";
 import { ErroSaldoInsuficiente, ErroValidacao } from "./erros";
 import type { RegistroEstoque } from "./mapear";
 
@@ -48,9 +49,16 @@ export async function aplicarDeltaSaldo(material: string, delta: number): Promis
 }
 
 export async function garantirSaldos(consumo: { material: string; quantidade: number }[]): Promise<void> {
+    const linhas = await listarPorRelacoes("estoque", "material", consumo.map((item) => item.material));
+    const porMaterial = new Map<string, RegistroEstoque>();
+    for (const linha of linhas) {
+        const material = String(linha.material ?? "");
+        if (!porMaterial.has(material)) porMaterial.set(material, linha);
+    }
     const faltas: { material: string; necessario: number; disponivel: number }[] = [];
     for (const item of consumo) {
-        const disponivel = await obterSaldo(item.material);
+        const quantidade = porMaterial.get(item.material)?.quantidade;
+        const disponivel = typeof quantidade === "number" ? quantidade : 0;
         if (disponivel < item.quantidade) {
             faltas.push({ material: item.material, necessario: item.quantidade, disponivel });
         }

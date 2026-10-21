@@ -1,4 +1,4 @@
-import { listar } from "./crud";
+import { listarPorRelacoes } from "./consultasEmLote";
 
 export interface ItemKitConsumo {
     kit: string;
@@ -45,19 +45,12 @@ export function somarConsumo(entrada: {
 }
 
 export async function carregarComposicao(kitIds: string[]): Promise<LinhaComposicao[]> {
-    const ids = [...new Set(kitIds.filter(Boolean))];
-    const composicao: LinhaComposicao[] = [];
-    for (const kit of ids) {
-        const linhas = await listar("kits_materiais", { kit });
-        for (const linha of linhas) {
-            composicao.push({
-                kit,
-                material: String(linha.material ?? ""),
-                quantidade: typeof linha.quantidade === "number" ? linha.quantidade : 0,
-            });
-        }
-    }
-    return composicao;
+    const linhas = await listarPorRelacoes("kits_materiais", "kit", kitIds);
+    return linhas.map((linha) => ({
+        kit: String(linha.kit ?? ""),
+        material: String(linha.material ?? ""),
+        quantidade: typeof linha.quantidade === "number" ? linha.quantidade : 0,
+    }));
 }
 
 export async function calcularConsumo(

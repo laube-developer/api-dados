@@ -1,4 +1,5 @@
-import { buscarPorId, listar } from "./crud";
+import { buscarPorId } from "./crud";
+import { listarPorRelacoes } from "./consultasEmLote";
 import type { ConsumoMaterial } from "./consumo";
 
 export type LoteMaterial = {
@@ -67,8 +68,14 @@ function numero(valor: unknown): number {
 export async function carregarLotesDisponiveis(
     material: string
 ): Promise<LoteMaterial[]> {
-    const itens = await listar("itens_compra", { material });
-    const baixas = await listar("materiais_registro", { material });
+    return carregarLotesDosMateriais([material]);
+}
+
+async function carregarLotesDosMateriais(materiais: string[]): Promise<LoteMaterial[]> {
+    const [itens, baixas] = await Promise.all([
+        listarPorRelacoes("itens_compra", "material", materiais),
+        listarPorRelacoes("materiais_registro", "material", materiais),
+    ]);
     const consumido = new Map<string, number>();
     for (const baixa of baixas) {
         const loteId = String(baixa.item_compra ?? "").trim();
@@ -96,7 +103,7 @@ export async function carregarLotesDisponiveis(
         const id = String(item.id ?? "");
         return {
             id,
-            material: String(item.material ?? material),
+            material: String(item.material ?? ""),
             quantidade,
             custo: numero(item.custo),
             restante: Math.max(0, quantidade - (consumido.get(id) ?? 0)),
@@ -108,11 +115,17 @@ export async function carregarLotesDisponiveis(
 export async function alocarConsumoPorLotes(
     consumo: ConsumoMaterial[]
 ): Promise<AlocacaoLote[]> {
+    const positivos = consumo.filter((item) => item.quantidade > 0);
+    const lotes = await carregarLotesDosMateriais(positivos.map((item) => item.material));
+    const porMaterial = new Map<string, LoteMaterial[]>();
+    for (const lote of lotes) {
+        const grupo = porMaterial.get(lote.material) ?? [];
+        grupo.push(lote);
+        porMaterial.set(lote.material, grupo);
+    }
     const alocacoes: AlocacaoLote[] = [];
-    for (const item of consumo) {
-        if (item.quantidade <= 0) continue;
-        const lotes = await carregarLotesDisponiveis(item.material);
-        const fatias = alocarFifo(lotes, item.quantidade);
+    for (const item of positivos) {
+        const fatias = alocarFifo(porMaterial.get(item.material) ?? [], item.quantidade);
         for (const fatia of fatias) {
             alocacoes.push({ material: item.material, ...fatia });
         }

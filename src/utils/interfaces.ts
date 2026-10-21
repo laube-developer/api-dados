@@ -1,3 +1,9 @@
+export interface DetalhesRegistroConsumo {
+    obs: string;
+    materiais: { id: string; nome: string; quantidade: number }[];
+    kits: { id: string; nome: string; quantidade: number }[];
+}
+
 export interface Paciente {
     nome: string;
     cpf?: string;
