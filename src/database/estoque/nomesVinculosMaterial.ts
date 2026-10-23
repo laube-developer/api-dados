@@ -1,6 +1,6 @@
 import { idTabela } from "./crud";
 import { dependenciasEstoque } from "./deps";
-import { tabelasVinculos, type TabelaVinculo, type VinculoMaterial } from "./vinculosMaterial";
+import { type TabelaVinculo, type VinculoMaterial } from "./vinculosMaterial";
 
 const normalizarId = (id: string) => id.replaceAll("-", "").toLowerCase();
 const referencias = {
@@ -10,7 +10,12 @@ const referencias = {
 };
 
 export async function nomesVinculosMaterial(vinculos: VinculoMaterial[]) {
-    const detalhes = Object.fromEntries(tabelasVinculos.map(tabela => [tabela, []])) as Record<TabelaVinculo, { id: string; nome: string; quantidade: number }[]>;
+    const detalhes: Record<TabelaVinculo, { id: string; nome: string; quantidade: number }[]> = {
+        itens_compra: [],
+        kits_materiais: [],
+        materiais_registro: [],
+        estoque: [],
+    };
     const nomes = new Map<string, string>();
     const bancos = new Map<string, string>();
     for (const vinculo of vinculos) {
