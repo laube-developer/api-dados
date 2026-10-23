@@ -2,6 +2,7 @@ import { adicionar, alterar, buscarPorId, listar, listarPaginado } from "./crud"
 import { calcularConsumo, somarConsumo } from "./consumo";
 import { alocarConsumoPorLotes } from "./lotes";
 import { removerRegistro } from "./removerRegistro";
+import { removerMaterial, visualizarRemocaoMaterial } from "./removerMaterial";
 import { carregarDetalhesRegistro } from "./detalhesRegistro";
 import { aplicarDeltaSaldo, decrementarSaldo, garantirSaldos, incrementarSaldo, obterSaldo } from "./saldo";
 import { compensarPaginas, comRetry, executarComCompensacao } from "./transacao";
@@ -9,6 +10,8 @@ import { compensarPaginas, comRetry, executarComCompensacao } from "./transacao"
 export const servicosEstoque = {
     carregarDetalhesRegistro,
     removerRegistro,
+    removerMaterial,
+    visualizarRemocaoMaterial,
     listar,
     listarPaginado,
     buscarPorId,
