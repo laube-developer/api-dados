@@ -46,6 +46,14 @@ function validarItens(itens: unknown): { material: string; fornecedor: string; q
 }
 
 export function registrarCompras(router: Router) {
+    router.delete("/compras/:id", tratar(async (req, res) => {
+        return responderSucesso(res, await servicosEstoque.removerCompra(String(req.params.id ?? "")));
+    }));
+
+    router.patch("/compras/:id", tratar(async (req, res) => {
+        return responderSucesso(res, await servicosEstoque.alterarCompra(String(req.params.id ?? ""), req.body ?? {}));
+    }));
+
     router.post("/compras", tratar(async (req, res) => {
         const body = req.body ?? {};
         const { itens, custo: _custoCompra, ...dados } = body;

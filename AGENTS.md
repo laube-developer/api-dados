@@ -54,5 +54,7 @@ Quando eu solicitar novas funcionalidades, você deve criar ou expandir funçõe
 2. **Alteração de Dados (PATCH):** Atualizar propriedades de páginas existentes usando o ID da linha encontrada.
 
 ## 5. DIRETRIZES DE EXECUÇÃO
-Nunca rode nenhum comando. 
-Ao final da tarefa de escrever o código, se tiver algo para testar, não faça. Me avise e apenas finalize a tarefa.
+Comandos locais de leitura, busca, edição, Git e verificação estática são permitidos.
+Testes isolados com dados simulados são permitidos após verificar que não iniciam a API nem acessam serviços ou dados reais.
+Não iniciar o api-dados (por exemplo, `npm run dev`, `npm start` ou `src/index.ts`), fazer chamadas à API em execução, executar testes de integração contra a API/Notion reais ou rodar scripts que possam alterar o estoque real. Não carregar credenciais de produção para testes. Essas operações exigem autorização explícita e específica do usuário.
+Antes de executar testes, inspecionar suas dependências e garantir que o acesso externo esteja substituído por mocks ou bloqueado. Informar quais verificações isoladas foram executadas e quais não foram executadas.

@@ -74,6 +74,7 @@ export const RECURSOS: RecursoSchema[] = [
         titleDummy: true,
         temAtivo: false,
         postEspecial: true,
+        patchEspecial: true,
         campos: [
             campo("nome", "title"),
             campo("data_hora", "date", true),

@@ -79,17 +79,29 @@ Todas as rotas seguem o mesmo envelope JSON.
 
 ## Testes
 
-```bash
-npm test
-```
+Comandos locais de leitura, edição, Git e verificação estática são permitidos. Testes unitários isolados com dados simulados também são permitidos, desde que suas dependências sejam verificadas e o acesso externo esteja simulado ou bloqueado.
+
+Não iniciar a API (`npm run dev`, `npm start`, `src/index.ts`), fazer chamadas à API em execução nem rodar testes ou scripts contra API/Notion reais sem autorização explícita e específica. O objetivo é impedir alterações acidentais no estoque real. Não carregar credenciais de produção nos testes. Inspecione os testes selecionados antes de executá-los; não execute a suíte inteira sem verificar seu isolamento.
 
 Consultas finalizadas: `tests/dados/cronConsultasFinalizadas.test.ts` e
 `tests/dados/cronConsultasFinalizadasRotas.test.ts` cobrem leitura, paginação,
 normalização, desativação, autenticação, envelope e falhas. Usam `fetch`
 simulado e objetos HTTP em memória, sem chamadas externas nem servidor.
-Foram preparados sem execução, conforme as instruções locais do projeto.
+Esses testes podem ser executados isoladamente após conferir as condições acima.
 
 ## Rotas
+
+### Edição, exclusão de compras e saldo
+
+`PATCH /estoque/compras/:id` aceita `data_hora`, `obs` e o array `itens` com a composição final da compra. Cada item contém `material`, `fornecedor`, `quantidade`, `custo` e, para itens existentes, `id`. Itens omitidos são arquivados; itens sem ID são criados. Sem o campo `itens`, apenas os dados da compra são alterados.
+
+A edição aplica, por material, `saldo atual - quantidade anterior da compra + quantidade nova da compra`. Corrigir 100 para 150 acrescenta 50 ao saldo atual, preservando os consumos. Itens consumidos não podem ser removidos, trocar de material ou ter quantidade menor que a já consumida. O custo proporcional dos consumos vinculados é recalculado.
+
+`DELETE /estoque/compras/:id` arquiva a compra e todos os seus itens e desconta do saldo as quantidades dessa compra, agrupadas por material. Recusa compras com consumo vinculado ou cujo estorno deixe o saldo negativo. Reenviar a exclusão de uma compra já arquivada da mesma clínica retorna sucesso sem descontar novamente. Edição e exclusão compartilham a mesma fila e bloqueio de compensação nesta instância; falhas de gravação revertem inclusive a chamada cuja resposta foi perdida.
+
+As alterações são validadas antes de gravar e usam compensação em caso de falha. Falhas de compensação ou criações com resposta perdida retornam `compensacao_pendente` e bloqueiam novas edições nessa base até revisão e reinício do processo. A fila de edição é local ao processo e não coordena outras operações de estoque nem múltiplas instâncias; não constitui uma transação distribuída.
+
+Regressões cobertas em `tests/estoque/alterarCompra.test.ts`, usando páginas em memória e `fetch` bloqueado, sem servidor ou credenciais. Execução isolada: `node --import tsx --test tests/estoque/alterarCompra.test.ts`. A correção precisa ser publicada na API para afetar o ambiente em uso e não reconcilia saldos históricos automaticamente.
 
 Header em todas as rotas: `Authorization: Bearer <AUTH_TOKEN>`.
 
