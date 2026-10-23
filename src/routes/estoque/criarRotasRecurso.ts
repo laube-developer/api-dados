@@ -7,6 +7,16 @@ import { tratar } from "./errosHttp";
 export function criarRotasRecurso(router: Router, recurso: RecursoSchema) {
     const base = `/${recurso.slug}`;
 
+    if (recurso.slug === "materiais") {
+        router.get(`${base}/:id/remocao`, tratar(async (req, res) => {
+            return responderSucesso(res, await servicosEstoque.visualizarRemocaoMaterial(String(req.params.id ?? "")));
+        }));
+        router.delete(`${base}/:id`, tratar(async (req, res) => {
+            const dados = await servicosEstoque.removerMaterial(String(req.params.id ?? ""), req.body?.versao);
+            return responderSucesso(res, dados);
+        }));
+    }
+
     router.get(base, tratar(async (req, res) => {
         const resultado = await servicosEstoque.listarPaginado(
             recurso.tabela,

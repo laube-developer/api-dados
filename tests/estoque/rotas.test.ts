@@ -88,6 +88,32 @@ describe("rotas /estoque", () => {
         Object.assign(dependenciasEstoque, depsOriginais);
     });
 
+    test("GET prévia de remoção exige sessão e domínio e retorna contagens", async () => {
+        let chamadas = 0;
+        servicosEstoque.visualizarRemocaoMaterial = async () => { chamadas++; return { versao: "a".repeat(64), contagens: { estoque: 1, itens_compra: 2, kits_materiais: 3, materiais_registro: 4 }, detalhes: { estoque: [], itens_compra: [], kits_materiais: [], materiais_registro: [] } }; };
+        const path = "/estoque/materiais/00000000-0000-0000-0000-000000000001/remocao";
+        assert.equal((await chamar(url, "GET", comDominioEstoque(path), { token: null })).status, 401);
+        assert.equal((await chamar(url, "GET", path)).status, 400);
+        assert.equal(chamadas, 0);
+        const res = await chamar(url, "GET", comDominioEstoque(path));
+        assert.equal(res.status, 200);
+        assert.equal(res.json.dados.contagens.itens_compra, 2);
+        assert.equal(chamadas, 1);
+    });
+
+    test("DELETE material exige autenticação e contexto da clínica", async () => {
+        let chamadas = 0;
+        servicosEstoque.removerMaterial = async (id) => { chamadas++; return { id, removido: true }; };
+        const path = "/estoque/materiais/00000000-0000-0000-0000-000000000001";
+        assert.equal((await chamar(url, "DELETE", comDominioEstoque(path), { token: null })).status, 401);
+        assert.equal((await chamar(url, "DELETE", path)).status, 400);
+        assert.equal(chamadas, 0);
+        const res = await chamar(url, "DELETE", comDominioEstoque(path));
+        assert.equal(res.status, 200);
+        assert.equal(res.json.dados.removido, true);
+        assert.equal(chamadas, 1);
+    });
+
     test("DELETE registro exige autenticação e contexto da clínica", async () => {
         let chamadas = 0;
         servicosEstoque.removerRegistro = async (id) => { chamadas++; return { id, removido: true }; };
