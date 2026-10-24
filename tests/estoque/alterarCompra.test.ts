@@ -83,14 +83,15 @@ test('recusa compra ou material de outra clínica', async () => {
     await assert.rejects(alterarCompra(compra, body(150)), /clínica/);
     assert.equal(escritas.length, 0);
 });
-test('resposta perdida após escrita restaura item, consumo e saldo', async () => {
+test('falha de escrita retorna erro original sem restaurar alterações', async () => {
     falhar = (id, body) => id === saldo && body.properties?.quantidade?.number === 120;
-    await assert.rejects(alterarCompra(compra, body(150)), /revertidas/);
-    assert.equal(qtd(saldo), 70); assert.equal(qtd(item), 100);
+    await assert.rejects(alterarCompra(compra, body(150)), /Resposta perdida/);
+    assert.equal(qtd(saldo), 120); assert.equal(qtd(item), 150);
     assert.equal(paginas.get(consumo).properties.custo.number, 60);
 });
-test('edições simultâneas na mesma base usam a quantidade mais recente', async () => {
-    await Promise.all([alterarCompra(compra, body(150)), alterarCompra(compra, body(200))]);
+test('edições sequenciais usam a quantidade mais recente', async () => {
+    await alterarCompra(compra, body(150));
+    await alterarCompra(compra, body(200));
     assert.equal(qtd(saldo), 170); assert.equal(qtd(item), 200);
 });
 test('adicionar e remover itens aplica a diferença agregada por material', async () => {
@@ -104,12 +105,13 @@ test('nova entrada cria saldo ausente', async () => {
     await alterarCompra(compra, { itens: [{ material, fornecedor, quantidade: 150, custo: 300 }] });
     assert.equal([...paginas.values()].find(p => p.parent.database_id.endsWith('-estoque')).properties.quantidade.number, 150);
 });
-test('falha de compensação bloqueia reenvio nesta base', async () => {
+test('falha não bloqueia edições posteriores na mesma base', async () => {
     falhar = id => id === saldo;
-    await assert.rejects(alterarCompra(compra, body(150)), /pendente/);
+    await assert.rejects(alterarCompra(compra, body(150)), /Resposta perdida/);
     const total = escritas.length;
-    await assert.rejects(alterarCompra(compra, body(150)), /pendente/);
-    assert.equal(escritas.length, total);
+    falhar = () => false;
+    await alterarCompra(compra, body(150));
+    assert.ok(escritas.length > total);
 });
 test('rota PATCH específica substitui a genérica e atualiza saldo sem servidor HTTP', async () => {
     const handlers: any[] = [];
@@ -138,19 +140,20 @@ test('troca de material sem consumo estorna o antigo e credita o novo', async ()
     const novoSaldo = [...paginas.values()].find(p => p.parent.database_id.endsWith('-estoque') && p.id !== saldo);
     assert.equal(novoSaldo.properties.quantidade.number, 150);
 });
-test('POST com resposta perdida sinaliza pendência e não repete a criação', async () => {
+test('POST com resposta perdida retorna erro original sem repetir ou bloquear', async () => {
     falhar = (_id, body) => Boolean(body.parent);
-    await assert.rejects(alterarCompra(compra, { itens: [...body(150).itens, { material, fornecedor, quantidade: 5, custo: 10 }] }), /pendente/);
+    await assert.rejects(alterarCompra(compra, { itens: [...body(150).itens, { material, fornecedor, quantidade: 5, custo: 10 }] }), /Resposta perdida/);
     assert.equal(escritas.length, 1);
     assert.equal(qtd(saldo), 70); assert.equal(qtd(item), 100);
-    await assert.rejects(alterarCompra(compra, body(150)), /pendente/);
-    assert.equal(escritas.length, 1);
+    falhar = () => false;
+    await alterarCompra(compra, { obs: 'Correção posterior' });
+    assert.equal(escritas.length, 2);
 });
-test('falha após criação arquiva a nova página e restaura a compra', async () => {
+test('falha após criação preserva página nova e alterações já gravadas', async () => {
     falhar = (id, body) => id === saldo && body.properties?.quantidade?.number === 125;
-    await assert.rejects(alterarCompra(compra, { itens: [...body(150).itens, { material, fornecedor, quantidade: 5, custo: 10 }] }), /revertidas/);
-    assert.equal(qtd(saldo), 70); assert.equal(qtd(item), 100);
-    assert.equal([...paginas.values()].filter(p => p.parent.database_id.endsWith('-itens_compra') && !p.archived).length, 1);
+    await assert.rejects(alterarCompra(compra, { itens: [...body(150).itens, { material, fornecedor, quantidade: 5, custo: 10 }] }), /Resposta perdida/);
+    assert.equal(qtd(saldo), 125); assert.equal(qtd(item), 150);
+    assert.equal([...paginas.values()].filter(p => p.parent.database_id.endsWith('-itens_compra') && !p.archived).length, 2);
 });
 test('considera todos os itens da compra além da primeira página', async () => {
     const itens = [...body(150).itens];
@@ -166,9 +169,9 @@ function prepararExclusao() {
     paginas.delete(consumo);
     paginas.get(saldo).properties.quantidade.number = 170;
 }
-test('exclusão arquiva compra e itens, estorna uma única vez mesmo com reenvio simultâneo', async () => {
+test('exclusão arquiva compra e itens e não repete estorno em reenvio sequencial', async () => {
     prepararExclusao();
-    await Promise.all([removerCompra(compra), removerCompra(compra)]);
+    await removerCompra(compra);
     await removerCompra(compra);
     assert.equal(qtd(saldo), 70);
     assert.equal(paginas.get(item).archived, true);
@@ -189,26 +192,28 @@ test('exclusão recusa identificador inválido e compra de outra clínica, inclu
     await assert.rejects(removerCompra(compra), /clínica/);
     assert.equal(escritas.length, 0);
 });
-test('exclusão compensa resposta perdida depois de arquivar a compra', async () => {
+test('exclusão retorna erro original sem reverter gravações', async () => {
     prepararExclusao();
     falhar = (id, body) => id === compra && body.archived === true;
-    await assert.rejects(removerCompra(compra), /revertidas/);
-    assert.equal(qtd(saldo), 170);
-    assert.equal(paginas.get(item).archived, false);
-    assert.equal(paginas.get(compra).archived, false);
+    await assert.rejects(removerCompra(compra), /Resposta perdida/);
+    assert.equal(qtd(saldo), 70);
+    assert.equal(paginas.get(item).archived, true);
+    assert.equal(paginas.get(compra).archived, true);
 });
-test('falha de compensação de exclusão bloqueia exclusão e edição', async () => {
+test('falha de exclusão não bloqueia operações posteriores na base', async () => {
     prepararExclusao();
     falhar = id => id === compra;
-    await assert.rejects(removerCompra(compra), /pendente/);
-    const total = escritas.length;
-    await assert.rejects(removerCompra(compra), /pendente/);
-    await assert.rejects(alterarCompra(compra, body(150)), /pendente/);
-    assert.equal(escritas.length, total);
+    await assert.rejects(removerCompra(compra), /Resposta perdida/);
+    falhar = () => false;
+    await removerCompra(compra);
+    const outra = uuid(99);
+    paginas.set(outra, pagina(outra, 'compras'));
+    await alterarCompra(outra, { obs: 'Sem bloqueio' });
 });
-test('edição e exclusão compartilham fila e estornam a quantidade atualizada', async () => {
+test('edição seguida de exclusão estorna a quantidade atualizada', async () => {
     prepararExclusao();
-    await Promise.all([alterarCompra(compra, body(150)), removerCompra(compra)]);
+    await alterarCompra(compra, body(150));
+    await removerCompra(compra);
     assert.equal(qtd(saldo), 70);
     assert.equal(paginas.get(compra).archived, true);
 });
@@ -283,4 +288,35 @@ test('fluxo pelas rotas: carregar, editar dados, adicionar item, alterar quantid
     assert.equal((await chamar('get', '/compras')).length, 0);
     assert.equal((await chamar('get', '/itens-compra', undefined, { compra })).length, 0);
     await chamar('delete', url); assert.equal(qtd(saldo), 70);
+});
+
+test('edição não aguarda outra operação da mesma base', async () => {
+    const chamar = dependenciasEstoque.chamarNotionAPI;
+    let liberar!: () => void;
+    let sinalizar!: () => void;
+    const suspensa = new Promise<void>(resolve => { sinalizar = resolve; });
+    const continuar = new Promise<void>(resolve => { liberar = resolve; });
+    let primeira = true;
+    dependenciasEstoque.chamarNotionAPI = async (...args) => {
+        if (primeira && args[0] === `pages/${compra}` && args[1] === 'GET') {
+            primeira = false;
+            sinalizar();
+            await continuar;
+        }
+        return chamar(...args);
+    };
+    const inicial = alterarCompra(compra, { obs: 'Primeira' });
+    await suspensa;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+        await Promise.race([
+            alterarCompra(compra, { obs: 'Segunda' }),
+            new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Edição ficou na fila')), 1000); }),
+        ]);
+        assert.deepEqual(escritas, [compra]);
+    } finally {
+        clearTimeout(timer);
+        liberar();
+        await inicial;
+    }
 });

@@ -1,15 +1,12 @@
 import { idTabela, listar } from "./crud";
 import { dependenciasEstoque } from "./deps";
-import { ErroCompensacaoPendente, ErroNaoEncontrado, ErroOperacaoNaoConcluida, ErroValidacao } from "./erros";
+import { ErroNaoEncontrado, ErroValidacao } from "./erros";
 import { jsonParaProperties, paginaParaJson, validarCorpo, type RegistroEstoque } from "./mapear";
 import { recursoPorTabela } from "./schema";
 import { custoProporcional } from "./lotes";
-import { comRetry } from "./transacao";
 
 type Item = { id?: string; material: string; fornecedor: string; quantidade: number; custo: number };
-type Escrita = { tabela: string; id: string; antes: Record<string, unknown>; depois: Record<string, unknown> };
-const filas = new Map<string, Promise<unknown>>();
-const pendentes = new Set<string>();
+type Escrita = { tabela: string; id: string; depois: Record<string, unknown> };
 const normalizarId = (id: string) => id.replaceAll("-", "").toLowerCase();
 function validarId(id: unknown): asserts id is string {
     if (typeof id !== "string" || !/^[a-f\d]{8}-?(?:[a-f\d]{4}-?){3}[a-f\d]{12}$/i.test(id)) throw new ErroValidacao("Identificador inválido.");
@@ -41,8 +38,7 @@ async function paginaDaClinica(tabela: string, id: string, permitirArquivada = f
 }
 function alterarLinha(tabela: string, linha: RegistroEstoque, dados: Record<string, unknown>): Escrita {
     const schema = recursoPorTabela(tabela);
-    const anteriores = Object.fromEntries(Object.keys(dados).map((campo) => [campo, linha[campo]]));
-    return { tabela, id: linha.id, antes: { properties: jsonParaProperties(schema, anteriores, "alterar") }, depois: { properties: jsonParaProperties(schema, dados, "alterar") } };
+    return { tabela, id: linha.id, depois: { properties: jsonParaProperties(schema, dados, "alterar") } };
 }
 async function prepararItens(antigos: RegistroEstoque[], novos: Item[], escritas: Escrita[]) {
     const anteriores = new Map(antigos.map((item) => [normalizarId(item.id), item]));
@@ -59,7 +55,7 @@ async function prepararItens(antigos: RegistroEstoque[], novos: Item[], escritas
         if (consumos.length && (!novo || novo.material !== normalizarId(String(antigo.material)) || novo.quantidade < consumido)) {
             throw new ErroValidacao("O item possui consumo vinculado; preserve o material e a quantidade já consumida.");
         }
-        if (!novo) escritas.push({ tabela: "itens_compra", id: antigo.id, antes: { archived: false }, depois: { archived: true } });
+        if (!novo) escritas.push({ tabela: "itens_compra", id: antigo.id, depois: { archived: true } });
         else {
             escritas.push(alterarLinha("itens_compra", antigo, { material: novo.material, fornecedor: novo.fornecedor, quantidade: novo.quantidade, custo: novo.custo }));
             for (const consumo of consumos) escritas.push(alterarLinha("materiais_registro", consumo, { custo: custoProporcional(novo.custo, novo.quantidade, Number(consumo.quantidade)) }));
@@ -94,8 +90,8 @@ async function prepararSaldos(antigos: RegistroEstoque[], novos: Item[], escrita
     }
     return criar;
 }
-async function executar(id: string, body: Record<string, unknown>, banco: string, remover = false) {
-    if (pendentes.has(banco)) throw new ErroCompensacaoPendente([{ tabela: "compras", id }]);
+async function executar(id: string, body: Record<string, unknown>, remover = false) {
+    validarId(id);
     const pagina = await paginaDaClinica("compras", id, remover);
     if (remover && (pagina.archived || pagina.in_trash)) return { id, removido: true };
     const compra = paginaParaJson(recursoPorTabela("compras"), pagina);
@@ -113,53 +109,24 @@ async function executar(id: string, body: Record<string, unknown>, banco: string
         for (const saldo of saldos) criacoes.push({ tabela: "estoque", dados: saldo });
     }
     escritas.push(remover
-        ? { tabela: "compras", id: compra.id, antes: { archived: false }, depois: { archived: true } }
+        ? { tabela: "compras", id: compra.id, depois: { archived: true } }
         : alterarLinha("compras", compra, dados));
-    const tentadas: Escrita[] = [];
-    let criacaoIncerta = false;
-    try {
-        for (const criacao of criacoes) {
-            const databaseId = await idTabela(criacao.tabela);
-            const properties = jsonParaProperties(recursoPorTabela(criacao.tabela), criacao.dados, "criar");
-            // POST não é repetido: uma resposta perdida pode ocultar uma página já criada.
-            criacaoIncerta = true;
-            const criada = await dependenciasEstoque.chamarNotionAPI("pages", "POST", { parent: { database_id: databaseId }, properties });
-            if (!criada?.id) throw new Error("Criação sem identificador.");
-            tentadas.push({ tabela: criacao.tabela, id: criada.id, antes: { archived: true }, depois: {} });
-            criacaoIncerta = false;
-        }
-        for (const escrita of escritas) {
-            tentadas.push(escrita);
-            await comRetry(() => dependenciasEstoque.chamarNotionAPI(`pages/${escrita.id}`, "PATCH", escrita.depois));
-        }
-        return remover ? { id, removido: true } : { ...compra, ...dados };
-    } catch {
-        const falhas: { tabela: string; id: string }[] = [];
-        for (const escrita of tentadas.reverse()) {
-            try { await comRetry(() => dependenciasEstoque.chamarNotionAPI(`pages/${escrita.id}`, "PATCH", escrita.antes)); }
-            catch { falhas.push({ tabela: escrita.tabela, id: escrita.id }); }
-        }
-        if (criacaoIncerta || falhas.length) {
-            pendentes.add(banco);
-            throw new ErroCompensacaoPendente([...falhas, { tabela: "compras", id }]);
-        }
-        throw new ErroOperacaoNaoConcluida(`Não foi possível ${remover ? "excluir" : "editar"} a compra. As alterações foram revertidas.`);
+    for (const criacao of criacoes) {
+        const databaseId = await idTabela(criacao.tabela);
+        const properties = jsonParaProperties(recursoPorTabela(criacao.tabela), criacao.dados, "criar");
+        const criada = await dependenciasEstoque.chamarNotionAPI("pages", "POST", { parent: { database_id: databaseId }, properties });
+        if (!criada?.id) throw new Error("Criação sem identificador.");
     }
-}
-async function enfileirarCompra(id: string, body: Record<string, unknown>, remover: boolean) {
-    validarId(id);
-    const banco = await idTabela("compras");
-    const anterior = filas.get(banco) ?? Promise.resolve();
-    const atual = anterior.catch(() => undefined).then(() => executar(id, body, banco, remover));
-    filas.set(banco, atual);
-    try { return await atual; }
-    finally { if (filas.get(banco) === atual) filas.delete(banco); }
+    for (const escrita of escritas) {
+        await dependenciasEstoque.chamarNotionAPI(`pages/${escrita.id}`, "PATCH", escrita.depois);
+    }
+    return remover ? { id, removido: true } : { ...compra, ...dados };
 }
 
 export async function alterarCompra(id: string, body: Record<string, unknown>) {
-    return enfileirarCompra(id, body, false);
+    return executar(id, body);
 }
 
 export async function removerCompra(id: string) {
-    return enfileirarCompra(id, {}, true);
+    return executar(id, {}, true);
 }
