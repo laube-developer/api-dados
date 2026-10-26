@@ -17,7 +17,7 @@ let paginas: Map<string, any>, escritas: string[], banco: string;
 let chamadas: { endpoint: string; method: string; body: any }[];
 let sequencia = 0, falhar: (id: string, body: any) => boolean;
 let fetchOriginal: typeof fetch;
-function pagina(id: string, tabela: string, properties = {}) { return { id, parent: { database_id: `${banco}-${tabela}` }, archived: false, properties }; }
+function pagina(id: string, tabela: string, properties = {}) { return { id, parent: { database_id: `${banco}-${tabela}` }, archived: false, properties: { ...(tabela === "compras" ? { data_hora: { date: { start: "2026-01-01T12:00:00Z" } } } : {}), ...properties } }; }
 beforeEach(() => {
     banco = `base${++sequencia}`; escritas = []; chamadas = []; falhar = () => false;
     fetchOriginal = globalThis.fetch;
@@ -28,7 +28,7 @@ beforeEach(() => {
         [material, pagina(material, 'materiais', { nome: { title: [{ text: { content: 'Gaze' } }] } })],
         [fornecedor, pagina(fornecedor, 'fornecedores')],
         [saldo, pagina(saldo, 'estoque', { material: relation(material), quantidade: { number: 70 } })],
-        [consumo, pagina(consumo, 'materiais_registro', { item_compra: relation(item), material: relation(material), quantidade: { number: 30 }, custo: { number: 60 } })],
+        [consumo, pagina(consumo, 'materiais_registro', { registro: relation(uuid(7)), item_compra: relation(item), material: relation(material), quantidade: { number: 30 }, custo: { number: 60 } })],
     ]);
     dependenciasEstoque.buscarTabelasBanco = async () => ['compras', 'itens_compra', 'materiais', 'fornecedores', 'estoque', 'materiais_registro'].map(nome => ({ nome, id: `${banco}-${nome}` }));
     dependenciasEstoque.arquivarPagina = async () => { throw Error('Dependência não simulada'); };
@@ -184,7 +184,7 @@ test('exclusão arquiva compra e itens e não repete estorno em reenvio sequenci
     assert.equal(escritas.at(-1), compra);
 });
 test('exclusão recusa consumo vinculado e saldo insuficiente sem escritas', async () => {
-    await assert.rejects(removerCompra(compra), /consumo/);
+    await assert.rejects(removerCompra(compra), /consumida/);
     paginas.delete(consumo);
     await assert.rejects(removerCompra(compra), /negativo/);
     assert.equal(escritas.length, 0);
@@ -196,18 +196,18 @@ test('exclusão recusa identificador inválido e compra de outra clínica, inclu
     await assert.rejects(removerCompra(compra), /clínica/);
     assert.equal(escritas.length, 0);
 });
-test('exclusão retorna erro original sem reverter gravações', async () => {
+test('exclusão reverte gravações inclusive a página cuja resposta se perdeu', async () => {
     prepararExclusao();
     falhar = (id, body) => id === compra && body.archived === true;
-    await assert.rejects(removerCompra(compra), /Resposta perdida/);
-    assert.equal(qtd(saldo), 70);
-    assert.equal(paginas.get(item).archived, true);
-    assert.equal(paginas.get(compra).archived, true);
+    await assert.rejects(removerCompra(compra), /revertidas/);
+    assert.equal(qtd(saldo), 170);
+    assert.equal(paginas.get(item).archived, false);
+    assert.equal(paginas.get(compra).archived, false);
 });
 test('falha de exclusão não bloqueia operações posteriores na base', async () => {
     prepararExclusao();
-    falhar = id => id === compra;
-    await assert.rejects(removerCompra(compra), /Resposta perdida/);
+    falhar = (id, body) => id === compra && body.archived === true;
+    await assert.rejects(removerCompra(compra), /revertidas/);
     falhar = () => false;
     await removerCompra(compra);
     const outra = uuid(99);
@@ -294,35 +294,24 @@ test('fluxo pelas rotas: carregar, editar dados, adicionar item, alterar quantid
     await chamar('delete', url); assert.equal(qtd(saldo), 70);
 });
 
-test('edição não aguarda outra operação da mesma base', async () => {
+test('edição aguarda outra operação da mesma base para não disputar saldos ou lotes', async () => {
     const chamar = dependenciasEstoque.chamarNotionAPI;
-    let liberar!: () => void;
-    let sinalizar!: () => void;
+    let liberar!: () => void, sinalizar!: () => void;
     const suspensa = new Promise<void>(resolve => { sinalizar = resolve; });
     const continuar = new Promise<void>(resolve => { liberar = resolve; });
     let primeira = true;
     dependenciasEstoque.chamarNotionAPI = async (...args) => {
         if (primeira && args[0] === `pages/${compra}` && args[1] === 'GET') {
-            primeira = false;
-            sinalizar();
-            await continuar;
+            primeira = false; sinalizar(); await continuar;
         }
         return chamar(...args);
     };
     const inicial = alterarCompra(compra, { obs: 'Primeira' });
     await suspensa;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-        await Promise.race([
-            alterarCompra(compra, { obs: 'Segunda' }),
-            new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Edição ficou na fila')), 1000); }),
-        ]);
-        assert.deepEqual(escritas, [compra]);
-    } finally {
-        clearTimeout(timer);
-        liberar();
-        await inicial;
-    }
+    const seguinte = alterarCompra(compra, { obs: 'Segunda' });
+    try { await new Promise(resolve => setImmediate(resolve)); assert.deepEqual(escritas, []); }
+    finally { liberar(); await Promise.all([inicial, seguinte]); }
+    assert.equal(paginas.get(compra).properties.obs.rich_text[0].text.content, 'Segunda');
 });
 
 const original = () => ({ id: item, material, fornecedor, quantidade: 100, custo: 200 });
@@ -371,4 +360,126 @@ test('data equivalente com outro fuso não gera gravação', async () => {
     paginas.get(compra).properties.data_hora = { date: { start: '2026-10-26T12:00:00Z' } };
     await alterarCompra(compra, { data_hora: '2026-10-26T09:00:00-03:00' });
     assert.equal(escritas.length, 0);
+});
+
+function loteSeguinte(n: number, unidades: number, custo: number, usado = 0, data = '2026-02-01T12:00:00Z', materialLote = material) {
+    const compraId = uuid(n), itemId = uuid(n + 1);
+    paginas.set(compraId, pagina(compraId, 'compras', { data_hora: { date: { start: data } } }));
+    paginas.set(itemId, pagina(itemId, 'itens_compra', { compra: relation(compraId), material: relation(materialLote), fornecedor: relation(fornecedor), quantidade: { number: unidades }, custo: { number: custo } }));
+    if (usado) paginas.set(uuid(n + 2), pagina(uuid(n + 2), 'materiais_registro', { registro: relation(uuid(7)), item_compra: relation(itemId), material: relation(materialLote), quantidade: { number: usado }, custo: { number: usado * custo / unidades } }));
+    const saldoPagina = paginas.get(saldo);
+    if (materialLote === material) saldoPagina.properties.quantidade.number += unidades - usado;
+    return { compraId, itemId };
+}
+const consumosAtivos = () => [...paginas.values()].filter(p => p.parent.database_id.endsWith('-materiais_registro') && !p.archived);
+const vinculo = (id: string) => paginas.get(id).properties.item_compra.relation[0]?.id;
+
+test('excluir compra de 20 consumidos transfere para a compra de 3000 e deixa saldo 2980', async () => {
+    paginas.get(item).properties.quantidade.number = 20;
+    paginas.get(consumo).properties.quantidade.number = 20;
+    paginas.get(saldo).properties.quantidade.number = 0;
+    const destino = loteSeguinte(100, 3000, 6000);
+    await removerCompra(compra);
+    assert.equal(qtd(saldo), 2980);
+    assert.equal(vinculo(consumo), destino.itemId);
+    assert.equal(paginas.get(consumo).properties.custo.number, 40);
+    assert.equal(paginas.get(compra).archived, true);
+    assert.equal(paginas.get(item).archived, true);
+    assert.equal(consumosAtivos().length, 1);
+    await removerCompra(compra); assert.equal(qtd(saldo), 2980);
+});
+test('remover item na edição preserva o outro item e transfere somente seu consumo', async () => {
+    const destino = loteSeguinte(100, 100, 500);
+    const mantido = uuid(90);
+    paginas.set(mantido, pagina(mantido, 'itens_compra', { compra: relation(compra), material: relation(material), fornecedor: relation(fornecedor), quantidade: { number: 10 }, custo: { number: 20 } }));
+    paginas.get(saldo).properties.quantidade.number += 10;
+    await alterarCompra(compra, { itens: [{ id: mantido, material, fornecedor, quantidade: 10, custo: 20 }] });
+    assert.equal(vinculo(consumo), destino.itemId);
+    assert.equal(qtd(saldo), 80);
+    assert.equal(paginas.get(mantido).archived, false);
+    assert.equal(paginas.get(compra).archived, false);
+});
+test('divide consumo entre lotes seguintes em ordem cronológica, preservando registro e material', async () => {
+    const segundo = loteSeguinte(100, 30, 150, 10, '2026-03-01T00:00:00Z');
+    const primeiro = loteSeguinte(200, 10, 20, 0, '2026-02-01T00:00:00Z');
+    await removerCompra(compra);
+    assert.equal(qtd(saldo), 0);
+    assert.equal(vinculo(consumo), primeiro.itemId);
+    assert.equal(qtd(consumo), 10);
+    assert.equal(paginas.get(consumo).properties.custo.number, 20);
+    const parcela = consumosAtivos().find(p => p.id !== consumo && p.id !== uuid(102))!;
+    assert.equal(parcela.properties.quantidade.number, 20);
+    assert.equal(parcela.properties.item_compra.relation[0].id, segundo.itemId);
+    assert.equal(parcela.properties.custo.number, 100);
+    assert.equal(parcela.properties.registro.relation[0].id, uuid(7));
+    assert.equal(parcela.properties.material.relation[0].id, material);
+    assert.equal(consumosAtivos().reduce((s, p) => s + p.properties.quantidade.number, 0), 40);
+});
+test('capacidade insuficiente nos próximos lotes bloqueia antes de escrever', async () => {
+    loteSeguinte(100, 100, 200, 80);
+    await assert.rejects(removerCompra(compra), /quantidade consumida.*compras seguintes/);
+    assert.equal(escritas.length, 0);
+    assert.equal(vinculo(consumo), item);
+    assert.equal(qtd(saldo), 90);
+});
+test('lotes de outro material, anteriores ou de compras arquivadas não recebem consumo', async () => {
+    loteSeguinte(100, 1000, 2000, 0, '2025-12-01T00:00:00Z');
+    const arquivada = loteSeguinte(200, 1000, 2000);
+    paginas.get(arquivada.compraId).archived = true;
+    loteSeguinte(300, 1000, 2000, 0, undefined, uuid(99));
+    await assert.rejects(removerCompra(compra), /quantidade consumida/);
+    assert.equal(escritas.length, 0);
+});
+test('dois itens removidos compartilham a capacidade do destino sem reservar duas vezes', async () => {
+    loteSeguinte(100, 50, 100);
+    const outro = uuid(80), outroConsumo = uuid(81);
+    paginas.set(outro, pagina(outro, 'itens_compra', { compra: relation(compra), material: relation(material), fornecedor: relation(fornecedor), quantidade: { number: 30 }, custo: { number: 60 } }));
+    paginas.set(outroConsumo, pagina(outroConsumo, 'materiais_registro', { registro: relation(uuid(7)), item_compra: relation(outro), material: relation(material), quantidade: { number: 30 }, custo: { number: 60 } }));
+    await assert.rejects(removerCompra(compra), /quantidade consumida/);
+    assert.equal(escritas.length, 0);
+});
+test('saldo negativo bloqueia mesmo quando existe capacidade para transferir os consumos', async () => {
+    loteSeguinte(100, 100, 200);
+    paginas.get(saldo).properties.quantidade.number = 99;
+    await assert.rejects(removerCompra(compra), /negativo/);
+    assert.equal(escritas.length, 0);
+});
+test('falha após transferir consumo reverte vínculo, custo, saldo e arquivamentos', async () => {
+    loteSeguinte(100, 100, 500);
+    falhar = (id, body) => id === compra && body.archived === true;
+    await assert.rejects(removerCompra(compra), /revertidas/);
+    assert.equal(vinculo(consumo), item);
+    assert.equal(paginas.get(consumo).properties.custo.number, 60);
+    assert.equal(qtd(saldo), 170);
+    assert.equal(paginas.get(item).archived, false);
+    assert.equal(paginas.get(compra).archived, false);
+});
+test('compensação de divisão arquiva parcelas criadas e restaura o consumo original', async () => {
+    loteSeguinte(100, 20, 40); loteSeguinte(200, 20, 100);
+    falhar = (id, body) => id === compra && body.archived === true;
+    await assert.rejects(removerCompra(compra), /revertidas/);
+    assert.equal(vinculo(consumo), item); assert.equal(qtd(consumo), 30);
+    assert.equal(consumosAtivos().length, 1); assert.equal(qtd(saldo), 110);
+});
+test('criação de parcela com resposta perdida sinaliza compensação pendente sem repetir POST', async () => {
+    loteSeguinte(100, 20, 40); loteSeguinte(200, 20, 100);
+    falhar = (_id, body) => Boolean(body.parent);
+    await assert.rejects(removerCompra(compra), (error: any) => error.name === 'ErroCompensacaoPendente');
+    assert.equal(chamadas.filter(c => c.method === 'POST' && c.endpoint === 'pages').length, 1);
+    assert.equal(vinculo(consumo), item); assert.equal(qtd(saldo), 110);
+});
+test('falha de reversão é comunicada como compensação pendente', async () => {
+    loteSeguinte(100, 100, 200);
+    falhar = (id, body) => id === compra && body.archived === true || id === consumo && body.properties?.item_compra?.relation?.[0]?.id === item;
+    await assert.rejects(removerCompra(compra), (error: any) => error.name === 'ErroCompensacaoPendente' && error.pendencias.some((p: any) => p.id === consumo));
+});
+test('consumo já existente no destino é contabilizado além da primeira página', async () => {
+    const destino = loteSeguinte(100, 130, 260);
+    for (let i = 0; i < 105; i++) {
+        const id = uuid(400 + i);
+        paginas.set(id, pagina(id, 'materiais_registro', { registro: relation(uuid(7)), item_compra: relation(destino.itemId), material: relation(material), quantidade: { number: 1 }, custo: { number: 2 } }));
+    }
+    await assert.rejects(removerCompra(compra), /quantidade consumida/);
+    assert.equal(escritas.length, 0);
+    assert.ok(chamadas.some(c => c.endpoint.includes('-materiais_registro/query') && c.body.start_cursor));
 });
