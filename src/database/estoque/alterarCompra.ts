@@ -5,9 +5,12 @@ import { ErroNaoEncontrado, ErroValidacao } from "./erros";
 import { jsonParaProperties, paginaParaJson, validarCorpo, type RegistroEstoque } from "./mapear";
 import { recursoPorTabela } from "./schema";
 import { custoProporcional } from "./lotes";
+import { planejarRealocacao } from "./realocarConsumosCompra";
+import { gravarExclusaoCompra, type EscritaCompra, type CriacaoCompra } from "./gravarExclusaoCompra";
+import { serializarEscritaEstoque } from "./escritas";
 
 type Item = { id?: string; material: string; fornecedor: string; quantidade: number; custo: number };
-type Escrita = { tabela: string; id: string; depois: Record<string, unknown> };
+type Escrita = EscritaCompra;
 const normalizarId = (id: string) => id.replaceAll("-", "").toLowerCase();
 function validarId(id: unknown): asserts id is string {
     if (typeof id !== "string" || !/^[a-f\d]{8}-?(?:[a-f\d]{4}-?){3}[a-f\d]{12}$/i.test(id)) throw new ErroValidacao("Identificador inválido.");
@@ -48,10 +51,10 @@ function camposAlterados(tabela: string, linha: RegistroEstoque, dados: Record<s
 function alterarLinha(tabela: string, linha: RegistroEstoque, dados: Record<string, unknown>, escritas: Escrita[]) {
     const alterados = camposAlterados(tabela, linha, dados);
     if (Object.keys(alterados).length) {
-        escritas.push({ tabela, id: linha.id, depois: { properties: jsonParaProperties(recursoPorTabela(tabela), alterados, "alterar") } });
+        escritas.push({ tabela, id: linha.id, depois: { properties: jsonParaProperties(recursoPorTabela(tabela), alterados, "alterar") }, antes: { properties: jsonParaProperties(recursoPorTabela(tabela), Object.fromEntries(Object.keys(alterados).map(campo => [campo, linha[campo]])), "alterar") } });
     }
 }
-async function prepararItens(antigos: RegistroEstoque[], novos: Item[], escritas: Escrita[], buscarPagina: typeof paginaDaClinica) {
+async function prepararItens(antigos: RegistroEstoque[], novos: Item[], escritas: Escrita[], buscarPagina: typeof paginaDaClinica, compra: RegistroEstoque, criacoes: CriacaoCompra[]) {
     const anteriores = new Map(antigos.map((item) => [normalizarId(item.id), item]));
     const posteriores = new Map(novos.filter((item) => item.id).map((item) => [normalizarId(item.id!), item]));
     for (const item of novos) {
@@ -77,15 +80,19 @@ async function prepararItens(antigos: RegistroEstoque[], novos: Item[], escritas
         grupo.push(consumo);
         consumosPorItem.set(chave, grupo);
     }
+    const removidos = antigos.filter(item => !posteriores.has(normalizarId(item.id)));
+    const realocacao = await planejarRealocacao({ compra, removidos, consumosPorItem, buscarCompra: id => buscarPagina("compras", id, true) });
+    for (const alteracao of realocacao.alteracoes) alterarLinha("materiais_registro", alteracao.atual, alteracao.dados, escritas);
+    for (const dados of realocacao.criacoes) criacoes.push({ tabela: "materiais_registro", dados });
     for (const antigo of antigos) {
         const novo = posteriores.get(normalizarId(antigo.id));
         const consumos = consumosPorItem.get(normalizarId(antigo.id)) ?? [];
         if (consumos.some((c) => !Number.isSafeInteger(c.quantidade) || Number(c.quantidade) < 0)) throw new ErroValidacao("Consumo inconsistente.");
         const consumido = consumos.reduce((soma, c) => soma + Number(c.quantidade), 0);
-        if (consumos.length && (!novo || novo.material !== normalizarId(String(antigo.material)) || novo.quantidade < consumido)) {
+        if (consumos.length && novo && (novo.material !== normalizarId(String(antigo.material)) || novo.quantidade < consumido)) {
             throw new ErroValidacao("O item possui consumo vinculado; preserve o material e a quantidade já consumida.");
         }
-        if (!novo) escritas.push({ tabela: "itens_compra", id: antigo.id, depois: { archived: true } });
+        if (!novo) escritas.push({ tabela: "itens_compra", id: antigo.id, depois: { archived: true }, antes: { archived: false } });
         else {
             alterarLinha("itens_compra", antigo, { material: novo.material, fornecedor: novo.fornecedor, quantidade: novo.quantidade, custo: novo.custo }, escritas);
             for (const consumo of consumos) alterarLinha("materiais_registro", consumo, { custo: custoProporcional(novo.custo, novo.quantidade, Number(consumo.quantidade)) }, escritas);
@@ -142,18 +149,24 @@ async function executar(id: string, body: Record<string, unknown>, remover = fal
     const dados = Object.fromEntries(["data_hora", "obs"].filter((campo) => campo in body).map((campo) => [campo, body[campo]]));
     validarCorpo(recursoPorTabela("compras"), dados, "alterar");
     const escritas: Escrita[] = [];
-    const criacoes: { tabela: string; dados: Record<string, unknown> }[] = [];
+    const criacoes: CriacaoCompra[] = [];
+    let temExclusao = remover;
     if (remover || body.itens !== undefined) {
         const novos = remover ? [] : validarItens(body.itens);
         const antigos = await listar("itens_compra", { compra: id });
         if (antigos.some((item) => normalizarId(String(item.compra)) !== normalizarId(id))) throw new ErroValidacao("Item não pertence à compra.");
-        await prepararItens(antigos, novos, escritas, buscarPagina);
+        temExclusao ||= antigos.some(item => !novos.some(novo => novo.id && normalizarId(novo.id) === normalizarId(item.id)));
+        await prepararItens(antigos, novos, escritas, buscarPagina, compra, criacoes);
         const saldos = await prepararSaldos(antigos, novos, escritas, buscarPagina);
         for (const item of novos.filter((item) => !item.id)) criacoes.push({ tabela: "itens_compra", dados: { material: item.material, fornecedor: item.fornecedor, quantidade: item.quantidade, custo: item.custo, compra: id } });
         for (const saldo of saldos) criacoes.push({ tabela: "estoque", dados: saldo });
     }
-    if (remover) escritas.push({ tabela: "compras", id: compra.id, depois: { archived: true } });
+    if (remover) escritas.push({ tabela: "compras", id: compra.id, depois: { archived: true }, antes: { archived: false } });
     else alterarLinha("compras", compra, dados, escritas);
+    if (temExclusao) {
+        await gravarExclusaoCompra(escritas, criacoes);
+        return remover ? { id, removido: true } : { ...compra, ...dados };
+    }
     for (const criacao of criacoes) {
         const databaseId = await idTabela(criacao.tabela);
         const properties = jsonParaProperties(recursoPorTabela(criacao.tabela), criacao.dados, "criar");
@@ -167,9 +180,9 @@ async function executar(id: string, body: Record<string, unknown>, remover = fal
 }
 
 export async function alterarCompra(id: string, body: Record<string, unknown>) {
-    return executar(id, body);
+    return serializarEscritaEstoque(() => executar(id, body));
 }
 
 export async function removerCompra(id: string) {
-    return executar(id, {}, true);
+    return serializarEscritaEstoque(() => executar(id, {}, true));
 }
