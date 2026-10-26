@@ -14,11 +14,12 @@ const normalizar = (id: string) => id.replaceAll('-', '');
 const relation = (id: string) => ({ relation: [{ id }] });
 const body = (quantidade: number) => ({ itens: [{ id: item, material, fornecedor, quantidade, custo: 300 }] });
 let paginas: Map<string, any>, escritas: string[], banco: string;
+let chamadas: { endpoint: string; method: string; body: any }[];
 let sequencia = 0, falhar: (id: string, body: any) => boolean;
 let fetchOriginal: typeof fetch;
 function pagina(id: string, tabela: string, properties = {}) { return { id, parent: { database_id: `${banco}-${tabela}` }, archived: false, properties }; }
 beforeEach(() => {
-    banco = `base${++sequencia}`; escritas = []; falhar = () => false;
+    banco = `base${++sequencia}`; escritas = []; chamadas = []; falhar = () => false;
     fetchOriginal = globalThis.fetch;
     globalThis.fetch = async () => { throw Error('Rede proibida neste teste isolado'); };
     paginas = new Map([
@@ -34,10 +35,13 @@ beforeEach(() => {
     dependenciasEstoque.buscarConfigEstoquePorDominio = async () => { throw Error('Dependência não simulada'); };
     transacaoConfig.delaysMs = [0, 0];
     dependenciasEstoque.chamarNotionAPI = async (endpoint, method, body) => {
+        chamadas.push({ endpoint, method: method ?? 'GET', body: structuredClone(body) });
         if (endpoint.startsWith('databases/')) {
             const db = endpoint.split('/')[1];
-            const rows = [...paginas.values()].filter(p => p.parent.database_id === db && !p.archived
-                && (!body.filter || p.properties[body.filter.property]?.relation?.some((r: any) => normalizar(r.id) === normalizar(body.filter.relation.contains))));
+            const corresponde = (p: any, filtro: any): boolean => !filtro || (filtro.or
+                ? filtro.or.some((f: any) => corresponde(p, f))
+                : p.properties[filtro.property]?.relation?.some((r: any) => normalizar(r.id) === normalizar(filtro.relation.contains)));
+            const rows = [...paginas.values()].filter(p => p.parent.database_id === db && !p.archived && corresponde(p, body.filter));
             const inicio = Number(body.start_cursor ?? 0), fim = inicio + 100;
             return { results: structuredClone(rows.slice(inicio, fim)), has_more: rows.length > fim, next_cursor: rows.length > fim ? String(fim) : null };
         }
@@ -111,7 +115,7 @@ test('falha não bloqueia edições posteriores na mesma base', async () => {
     const total = escritas.length;
     falhar = () => false;
     await alterarCompra(compra, body(150));
-    assert.ok(escritas.length > total);
+    assert.equal(escritas.length, total); // Reenvio idêntico não precisa gravar novamente.
 });
 test('rota PATCH específica substitui a genérica e atualiza saldo sem servidor HTTP', async () => {
     const handlers: any[] = [];
@@ -319,4 +323,52 @@ test('edição não aguarda outra operação da mesma base', async () => {
         liberar();
         await inicial;
     }
+});
+
+const original = () => ({ id: item, material, fornecedor, quantidade: 100, custo: 200 });
+test('alterar só observação com todos os itens faz duas leituras e uma gravação', async () => {
+    await alterarCompra(compra, { obs: 'Revisada', itens: [original()] });
+    assert.equal(chamadas.length, 3);
+    assert.deepEqual(escritas, [compra]);
+    assert.deepEqual(chamadas.at(-1)?.body.properties, { obs: { rich_text: [{ text: { content: 'Revisada' } }] } });
+});
+test('reenvio sem alterações e UUID sem hífen não consulta relações nem grava', async () => {
+    await alterarCompra(compra, { itens: [{ ...original(), material: normalizar(material), fornecedor: normalizar(fornecedor) }] });
+    assert.equal(chamadas.length, 2);
+    assert.equal(escritas.length, 0);
+});
+test('mudança de fornecedor não consulta consumos ou saldo e grava só fornecedor', async () => {
+    const outro = uuid(90);
+    paginas.set(outro, pagina(outro, 'fornecedores'));
+    await alterarCompra(compra, { itens: [{ ...original(), fornecedor: outro }] });
+    assert.deepEqual(escritas, [item]);
+    assert.deepEqual(Object.keys(chamadas.at(-1)?.body.properties), ['fornecedor']);
+    assert.equal(chamadas.filter(c => /-(estoque|materiais_registro)\/query/.test(c.endpoint)).length, 0);
+});
+test('agrupa consumos e saldos, valida referências únicas e não regrava custo igual', async () => {
+    const outroMaterial = uuid(91), outroItem = uuid(92), outroSaldo = uuid(93);
+    paginas.set(outroMaterial, pagina(outroMaterial, 'materiais'));
+    paginas.set(outroItem, pagina(outroItem, 'itens_compra', { compra: relation(compra), material: relation(outroMaterial), fornecedor: relation(fornecedor), quantidade: { number: 10 }, custo: { number: 20 } }));
+    paginas.set(outroSaldo, pagina(outroSaldo, 'estoque', { material: relation(outroMaterial), quantidade: { number: 10 } }));
+    await alterarCompra(compra, { itens: [body(150).itens[0], { id: outroItem, material: outroMaterial, fornecedor, quantidade: 20, custo: 40 }] });
+    assert.equal(qtd(saldo), 120); assert.equal(qtd(outroSaldo), 20);
+    assert.ok(!escritas.includes(consumo)); // Custo unitário continua 2.
+    assert.ok(!escritas.includes(compra));
+    assert.equal(chamadas.filter(c => c.endpoint.includes('-materiais_registro/query')).length, 1);
+    assert.equal(chamadas.filter(c => c.endpoint.includes('-estoque/query')).length, 1);
+    assert.equal(chamadas.filter(c => c.method === 'GET' && normalizar(c.endpoint) === normalizar(`pages/${fornecedor}`)).length, 1);
+});
+test('consumos em lote paginam até o fim e validam o total antes de gravar', async () => {
+    for (let i = 0; i < 105; i++) {
+        const id = uuid(500 + i);
+        paginas.set(id, pagina(id, 'materiais_registro', { item_compra: relation(item), quantidade: { number: 1 } }));
+    }
+    await assert.rejects(alterarCompra(compra, body(134)), /consumo/);
+    assert.equal(chamadas.filter(c => c.endpoint.includes('-materiais_registro/query')).length, 2);
+    assert.equal(escritas.length, 0);
+});
+test('data equivalente com outro fuso não gera gravação', async () => {
+    paginas.get(compra).properties.data_hora = { date: { start: '2026-10-26T12:00:00Z' } };
+    await alterarCompra(compra, { data_hora: '2026-10-26T09:00:00-03:00' });
+    assert.equal(escritas.length, 0);
 });
